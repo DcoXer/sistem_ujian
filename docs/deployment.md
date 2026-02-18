@@ -1,5 +1,21 @@
 # Deployment Checklist
 
+## Render (GitHub Deploy)
+1. Push repo yang sudah berisi `Dockerfile` + `render.yaml`.
+2. Di Render dashboard: `New +` -> `Blueprint` -> pilih repo ini.
+3. Render akan baca `render.yaml` dan membuat web service otomatis.
+4. Isi env wajib saat diminta:
+- `APP_KEY` (wajib, format `base64:...`)
+- `DATABASE_URL` (Supabase PostgreSQL URL)
+- `APP_URL` (URL Render app kamu, contoh `https://sistem-ujian.onrender.com`)
+5. Deploy.
+6. Setelah service up, jalankan migration sekali dari Render `Shell`:
+- `php artisan migrate --force`
+
+Catatan:
+- Scheduler lifecycle sudah jalan dari proses app (`php artisan schedule:work`) di entrypoint Docker.
+- Jika pakai domain custom, update `APP_URL` ke domain final.
+
 ## Fly.io (GitHub Deploy)
 1. Pastikan `fly.toml` sudah sesuai:
 - `app` diset ke nama app Fly.io milikmu.
