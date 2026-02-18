@@ -1,5 +1,11 @@
 # Deployment Checklist
 
+## php.id (Shared Hosting)
+- Ikuti panduan lengkap di: `docs/deployment-phpid.md`
+- Jika document root tidak bisa diarahkan ke `public`, pakai template:
+  - `deploy/shared-hosting/public_html/index.php`
+  - `deploy/shared-hosting/public_html/.htaccess`
+
 ## Render (GitHub Deploy)
 1. Push repo yang sudah berisi `Dockerfile` + `render.yaml`.
 2. Di Render dashboard: `New +` -> `Blueprint` -> pilih repo ini.

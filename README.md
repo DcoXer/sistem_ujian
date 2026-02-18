@@ -51,6 +51,7 @@ Scheduler wajib aktif agar lifecycle berjalan konsisten.
 - Testing strategy: `docs/testing.md`
 - Operator runbook: `docs/runbook.md`
 - Deploy checklist: `docs/deployment.md`
+- Shared hosting (php.id): `docs/deployment-phpid.md`
 - Architecture changelog: `docs/changelog-architecture.md`
 - ADR index: `docs/adr/README.md`
 - Legacy migration decision: `docs/legacy-migrations.md`
