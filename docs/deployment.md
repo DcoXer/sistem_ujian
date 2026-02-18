@@ -4,12 +4,13 @@
 1. Pastikan `fly.toml` sudah sesuai:
 - `app` diset ke nama app Fly.io milikmu.
 - `APP_URL` diset ke domain Fly app milikmu.
-2. Set secrets di Fly (minimal):
-- `APP_KEY`
-- `DB_CONNECTION=pgsql`, `DB_HOST`, `DB_PORT=5432`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`
-- `DB_SSLMODE=require` (wajib untuk Supabase pooler/direct connection)
-- (opsional) `MAIL_*`, `REDIS_*`
-3. Deploy:
+2. Mode paling simple (disarankan):
+- Isi secret `APP_KEY`
+- Isi secret `DATABASE_URL` (langsung paste connection string PostgreSQL Supabase/Fly Postgres)
+- Isi `DB_CONNECTION=pgsql`
+- Isi `DB_SSLMODE=require`
+3. Jika deploy lewat website Fly (tanpa terminal), cukup isi 4 nilai di atas lalu `Launch`.
+4. Deploy via CLI (opsional):
 - `fly deploy`
 
 ## 1. Build & Config
