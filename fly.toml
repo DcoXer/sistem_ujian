@@ -9,6 +9,7 @@ primary_region = "sin"
   APP_DEBUG = "false"
   APP_URL = "https://sistem-ujian.fly.dev"
   LOG_CHANNEL = "stderr"
+  DB_CONNECTION = "pgsql"
   SESSION_DRIVER = "database"
   SESSION_SECURE_COOKIE = "true"
   SESSION_SAME_SITE = "strict"
@@ -34,4 +35,3 @@ primary_region = "sin"
 
 [deploy]
   release_command = "php artisan migrate --force"
-

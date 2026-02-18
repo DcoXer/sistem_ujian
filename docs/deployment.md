@@ -6,7 +6,8 @@
 - `APP_URL` diset ke domain Fly app milikmu.
 2. Set secrets di Fly (minimal):
 - `APP_KEY`
-- `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`
+- `DB_CONNECTION=pgsql`, `DB_HOST`, `DB_PORT=5432`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`
+- `DB_SSLMODE=require` (wajib untuk Supabase pooler/direct connection)
 - (opsional) `MAIL_*`, `REDIS_*`
 3. Deploy:
 - `fly deploy`

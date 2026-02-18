@@ -31,6 +31,7 @@ RUN apk add --no-cache \
     intl \
     mbstring \
     pdo \
+    pdo_pgsql \
     pdo_mysql \
     zip
 
@@ -45,4 +46,3 @@ RUN chmod +x /entrypoint.sh \
 
 EXPOSE 8080
 ENTRYPOINT ["/entrypoint.sh"]
-
