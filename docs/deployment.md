@@ -1,5 +1,16 @@
 # Deployment Checklist
 
+## Fly.io (GitHub Deploy)
+1. Pastikan `fly.toml` sudah sesuai:
+- `app` diset ke nama app Fly.io milikmu.
+- `APP_URL` diset ke domain Fly app milikmu.
+2. Set secrets di Fly (minimal):
+- `APP_KEY`
+- `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`
+- (opsional) `MAIL_*`, `REDIS_*`
+3. Deploy:
+- `fly deploy`
+
 ## 1. Build & Config
 - Set `.env` production
 - `php artisan config:cache`

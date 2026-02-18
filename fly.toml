@@ -1,0 +1,37 @@
+app = "sistem-ujian"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  APP_ENV = "production"
+  APP_DEBUG = "false"
+  APP_URL = "https://sistem-ujian.fly.dev"
+  LOG_CHANNEL = "stderr"
+  SESSION_DRIVER = "database"
+  SESSION_SECURE_COOKIE = "true"
+  SESSION_SAME_SITE = "strict"
+  SESSION_LIFETIME = "30"
+  FILESYSTEM_DISK = "local"
+  CACHE_STORE = "database"
+  QUEUE_CONNECTION = "database"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+[[http_service.checks]]
+  interval = "15s"
+  timeout = "2s"
+  grace_period = "20s"
+  method = "GET"
+  path = "/up"
+
+[deploy]
+  release_command = "php artisan migrate --force"
+
