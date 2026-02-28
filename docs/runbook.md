@@ -102,8 +102,13 @@ Tujuan: mencegah beban baca meledak saat ribuan peserta membuka ujian di waktu y
 Set env:
 - `EXAM_CONTENT_CACHE_STORE=redis`
 - `EXAM_CONTENT_CACHE_TTL_SECONDS=1800`
+- `EXAM_CONTENT_CACHE_LOCK_SECONDS=10`
+- `EXAM_CONTENT_CACHE_LOCK_WAIT_SECONDS=3`
+- `EXAM_CONTENT_CACHE_FALLBACK_WAIT_MS=1200`
 
 Jika `EXAM_CONTENT_CACHE_STORE` kosong, service akan pakai default `CACHE_STORE`.
+
+Exam content cache memakai atomic lock saat rebuild (dogpile protection). Saat cache miss serentak, hanya satu request yang rebuild ke DB; request lain menunggu lock atau mengambil cache hasil rebuild.
 
 ### 3. Prewarm sebelum jam mulai
 Jalankan:
