@@ -6,6 +6,8 @@ use App\Exceptions\StateConflictException;
 use App\Models\Exam;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
+use App\Models\ExamOption;
+use App\Models\ExamQuestion;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -57,15 +59,17 @@ class ExamParticipationService
     public function saveAnswer(User $user, ExamAttempt $attempt, int $questionId, ?int $optionId, ?string $answerText = null): ExamAnswer
     {
         $this->assertEditableAttempt($user, $attempt);
+        $question = $this->resolveQuestionForAttempt($attempt, $questionId);
+        $validatedOptionId = $this->resolveOptionForQuestion($question->id, $optionId);
 
-        return DB::transaction(function () use ($attempt, $questionId, $optionId, $answerText) {
+        return DB::transaction(function () use ($attempt, $question, $validatedOptionId, $answerText) {
             return ExamAnswer::updateOrCreate(
                 [
                     'exam_attempt_id' => $attempt->id,
-                    'exam_question_id' => $questionId,
+                    'exam_question_id' => $question->id,
                 ],
                 [
-                    'exam_option_id' => $optionId,
+                    'exam_option_id' => $validatedOptionId,
                     'answer_text' => $answerText,
                     'locked_at' => null,
                 ]
@@ -240,5 +244,37 @@ class ExamParticipationService
         if ($this->isAttemptExpired($attempt)) {
             throw new StateConflictException('Waktu pengerjaan kamu sudah habis.');
         }
+    }
+
+    protected function resolveQuestionForAttempt(ExamAttempt $attempt, int $questionId): ExamQuestion
+    {
+        $question = ExamQuestion::query()
+            ->whereKey($questionId)
+            ->where('exam_id', $attempt->exam_id)
+            ->first();
+
+        if (! $question) {
+            throw new StateConflictException('Soal tidak valid untuk ujian ini.');
+        }
+
+        return $question;
+    }
+
+    protected function resolveOptionForQuestion(int $questionId, ?int $optionId): ?int
+    {
+        if ($optionId === null) {
+            return null;
+        }
+
+        $isValid = ExamOption::query()
+            ->whereKey($optionId)
+            ->where('exam_question_id', $questionId)
+            ->exists();
+
+        if (! $isValid) {
+            throw new StateConflictException('Opsi jawaban tidak valid untuk soal ini.');
+        }
+
+        return $optionId;
     }
 }

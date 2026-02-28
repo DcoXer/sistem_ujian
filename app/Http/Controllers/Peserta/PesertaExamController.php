@@ -108,11 +108,11 @@ class PesertaExamController extends Controller
 
     public function saveAnswer(Request $request, ExamAttempt $attempt): JsonResponse|Response|RedirectResponse
     {
-        $this->authorize('view', $attempt);
+        $this->authorize('answer', $attempt);
 
         $data = $request->validate([
-            'question_id' => ['required', 'exists:exam_questions,id'],
-            'option_id' => ['nullable', 'exists:exam_options,id'],
+            'question_id' => ['required', 'integer', 'min:1'],
+            'option_id' => ['nullable', 'integer', 'min:1'],
             'answer_text' => ['nullable', 'string'],
         ]);
 
