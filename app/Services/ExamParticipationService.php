@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\OptimisticLockException;
 use App\Exceptions\StateConflictException;
 use App\Models\Exam;
 use App\Models\ExamAnswer;
@@ -9,8 +10,8 @@ use App\Models\ExamAttempt;
 use App\Models\ExamOption;
 use App\Models\ExamQuestion;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
@@ -63,51 +64,69 @@ class ExamParticipationService
         int $questionId,
         ?int $optionId,
         ?string $answerText = null,
-        ?string $expectedVersion = null
+        ?int $expectedVersion = null
     ): ExamAnswer
     {
         $this->assertEditableAttempt($user, $attempt);
         $question = $this->resolveQuestionForAttempt($attempt, $questionId);
         $validatedOptionId = $this->resolveOptionForQuestion($question->id, $optionId);
+        $version = max(0, (int) ($expectedVersion ?? 0));
 
-        return DB::transaction(function () use ($attempt, $question, $validatedOptionId, $answerText, $expectedVersion) {
-            $existingAnswer = ExamAnswer::query()
-                ->where('exam_attempt_id', $attempt->id)
-                ->where('exam_question_id', $question->id)
-                ->lockForUpdate()
-                ->first();
-
-            if ($expectedVersion !== null) {
-                if (! $existingAnswer || ! $existingAnswer->updated_at) {
-                    throw new StateConflictException('Jawaban sudah berubah. Muat ulang halaman lalu coba lagi.');
-                }
-
-                $expected = CarbonImmutable::parse($expectedVersion)->utc()->format('Y-m-d H:i:s.u');
-                $current = $existingAnswer->updated_at->utc()->format('Y-m-d H:i:s.u');
-                if ($expected !== $current) {
-                    throw new StateConflictException('Jawaban sudah berubah. Muat ulang halaman lalu coba lagi.');
-                }
-            }
-
-            if ($existingAnswer) {
-                $existingAnswer->fill([
-                    'exam_option_id' => $validatedOptionId,
-                    'answer_text' => $answerText,
-                    'locked_at' => null,
-                ]);
-                $existingAnswer->save();
-
-                return $existingAnswer->fresh();
-            }
-
-            return ExamAnswer::create([
-                'exam_attempt_id' => $attempt->id,
-                'exam_question_id' => $question->id,
+        $affected = ExamAnswer::query()
+            ->where('exam_attempt_id', $attempt->id)
+            ->where('exam_question_id', $question->id)
+            ->where('lock_version', $version)
+            ->update([
                 'exam_option_id' => $validatedOptionId,
                 'answer_text' => $answerText,
                 'locked_at' => null,
+                'lock_version' => $version + 1,
+                'updated_at' => now(),
             ]);
-        });
+
+        if ($affected === 1) {
+            return ExamAnswer::query()
+                ->where('exam_attempt_id', $attempt->id)
+                ->where('exam_question_id', $question->id)
+                ->firstOrFail();
+        }
+
+        if ($version === 0) {
+            try {
+                return ExamAnswer::create([
+                    'exam_attempt_id' => $attempt->id,
+                    'exam_question_id' => $question->id,
+                    'exam_option_id' => $validatedOptionId,
+                    'answer_text' => $answerText,
+                    'locked_at' => null,
+                    'lock_version' => 1,
+                ]);
+            } catch (QueryException $exception) {
+                $latest = ExamAnswer::query()
+                    ->where('exam_attempt_id', $attempt->id)
+                    ->where('exam_question_id', $question->id)
+                    ->first();
+
+                if ($latest) {
+                    throw new OptimisticLockException(
+                        currentVersion: (int) $latest->lock_version,
+                        currentOptionId: $latest->exam_option_id ? (int) $latest->exam_option_id : null
+                    );
+                }
+
+                throw $exception;
+            }
+        }
+
+        $latest = ExamAnswer::query()
+            ->where('exam_attempt_id', $attempt->id)
+            ->where('exam_question_id', $question->id)
+            ->first();
+
+        throw new OptimisticLockException(
+            currentVersion: $latest ? (int) $latest->lock_version : null,
+            currentOptionId: $latest?->exam_option_id ? (int) $latest->exam_option_id : null
+        );
     }
 
     public function submitExam(User $user, ExamAttempt $attempt): ExamAttempt

@@ -13,12 +13,14 @@ class ExamAnswer extends Model
         'exam_option_id',
         'answer_text',
         'locked_at',
+        'lock_version',
     ];
 
     protected function casts(): array
     {
         return [
             'locked_at' => 'datetime',
+            'lock_version' => 'integer',
         ];
     }
 

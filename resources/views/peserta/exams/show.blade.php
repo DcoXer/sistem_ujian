@@ -31,7 +31,7 @@
                 data-question-card
                 data-question-id="{{ $question->id }}"
                 data-question-order="{{ $question->order }}"
-                data-answer-version="{{ $myAnswer?->updated_at?->toIso8601String() }}"
+                data-answer-version="{{ $myAnswer?->lock_version ?? 0 }}"
             >
                 <p class="font-semibold text-gray-900">#{{ $question->order }}. {{ $question->question_text }}</p>
                 <div class="mt-3 space-y-2">
@@ -189,7 +189,7 @@
             setInterval(refreshTimer, 15000);
             refreshTimer();
 
-            const saveAnswer = async (questionId, optionId) => {
+            const saveAnswer = async (questionId, optionId, retryCount = 0) => {
                 if (hasExpired) {
                     autosaveStatus.textContent = 'Autosave dihentikan karena waktu sudah habis.';
                     return;
@@ -199,7 +199,7 @@
                 const formData = new FormData();
                 formData.append('question_id', questionId);
                 formData.append('option_id', optionId);
-                if (answerVersions[questionId]) {
+                if (answerVersions[questionId] !== undefined && answerVersions[questionId] !== null) {
                     formData.append('answer_version', answerVersions[questionId]);
                 }
 
@@ -219,6 +219,17 @@
                         autosaveStatus.textContent = 'Jawaban tersimpan otomatis.';
                     } else if (res.status === 409) {
                         const conflict = await res.json().catch(() => ({}));
+                        if (
+                            conflict.error_code === 'stale_answer_version'
+                            && Number.isInteger(conflict.current_answer_version)
+                            && retryCount < 1
+                        ) {
+                            answerVersions[questionId] = conflict.current_answer_version;
+                            autosaveStatus.textContent = 'Sinkronisasi jawaban, mencoba simpan ulang...';
+                            await saveAnswer(questionId, optionId, retryCount + 1);
+                            return;
+                        }
+
                         autosaveStatus.textContent = conflict.message || 'Jawaban bentrok. Muat ulang halaman untuk sinkronisasi.';
                     } else {
                         autosaveStatus.textContent = 'Gagal autosave. Coba pilih jawaban lagi.';

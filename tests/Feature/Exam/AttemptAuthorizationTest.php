@@ -212,7 +212,8 @@ class AttemptAuthorizationTest extends TestCase
             'exam_option_id' => $firstOption->id,
         ]);
 
-        $staleVersion = $answer->updated_at->copy()->subSecond()->toIso8601String();
+        $answer->update(['lock_version' => 2]);
+        $staleVersion = 1;
 
         $this->actingAs($peserta)
             ->postJson(route('peserta.exams.answer', $attempt), [

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Peserta;
 
+use App\Exceptions\OptimisticLockException;
 use App\Exceptions\StateConflictException;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
@@ -114,7 +115,7 @@ class PesertaExamController extends Controller
             'question_id' => ['required', 'integer', 'min:1'],
             'option_id' => ['nullable', 'integer', 'min:1'],
             'answer_text' => ['nullable', 'string'],
-            'answer_version' => ['nullable', 'date'],
+            'answer_version' => ['nullable', 'integer', 'min:0'],
         ]);
 
         try {
@@ -126,6 +127,17 @@ class PesertaExamController extends Controller
                 $data['answer_text'] ?? null,
                 $data['answer_version'] ?? null
             );
+        } catch (OptimisticLockException $exception) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $exception->getMessage(),
+                    'error_code' => 'stale_answer_version',
+                    'current_answer_version' => $exception->currentVersion,
+                    'current_option_id' => $exception->currentOptionId,
+                ], 409);
+            }
+
+            abort(409, $exception->getMessage());
         } catch (StateConflictException $exception) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => $exception->getMessage()], 409);
@@ -137,7 +149,7 @@ class PesertaExamController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'status' => 'answer-saved',
-                'answer_version' => $answer->updated_at?->toIso8601String(),
+                'answer_version' => (int) $answer->lock_version,
             ]);
         }
 
