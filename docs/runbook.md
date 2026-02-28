@@ -88,3 +88,53 @@ Escalate jika:
 - ditemukan pola abuse yang berulang
 
 Operator tidak mengambil keputusan final untuk domain yang di luar scope teknis.
+
+## Read Scaling Runbook (Thundering Herd)
+
+Tujuan: mencegah beban baca meledak saat ribuan peserta membuka ujian di waktu yang sama.
+
+### 1. Pisahkan data static vs dynamic
+- Static: struktur soal + opsi per exam.
+- Dynamic: attempt + jawaban peserta.
+- Static wajib dilayani dari cache (`ExamContentCacheService`), bukan query relasi berulang.
+
+### 2. Aktifkan cache store khusus exam content
+Set env:
+- `EXAM_CONTENT_CACHE_STORE=redis`
+- `EXAM_CONTENT_CACHE_TTL_SECONDS=1800`
+
+Jika `EXAM_CONTENT_CACHE_STORE` kosong, service akan pakai default `CACHE_STORE`.
+
+### 3. Prewarm sebelum jam mulai
+Jalankan:
+- `php artisan exams:warm-content --window=15`
+
+Scheduler sudah mengeksekusi command ini setiap 5 menit. Pastikan scheduler hidup.
+
+### 4. Invalidasi cache saat mutasi
+Cache exam content wajib di-reset saat:
+- author create/update/delete question
+- admin publish/delete exam
+
+Jangan pernah update soal via DB manual karena bypass invalidation.
+
+### 5. Tuning baseline infra
+- PHP-FPM:
+  - `pm = dynamic`
+  - `pm.max_children` disesuaikan RAM (rule kasar: `RAM untuk PHP / avg worker memory`).
+  - monitor `max children reached`.
+- Nginx:
+  - `worker_processes auto`
+  - `worker_connections` cukup untuk concurrency target.
+  - naikkan `keepalive_requests` dan `keepalive_timeout` seperlunya.
+- DB:
+  - monitor slow query log saat jam ujian.
+  - pastikan index relasi exam/attempt/answer tetap sehat.
+
+### 6. Load test minimum sebelum event besar
+- Simulasikan herd:
+  - 500-1000 virtual users hit halaman mulai ujian secara serentak.
+- KPI minimum:
+  - p95 latency halaman show tidak melonjak ekstrem.
+  - error 5xx tetap 0.
+  - hit ratio cache exam content tinggi.

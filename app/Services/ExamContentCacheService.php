@@ -9,7 +9,7 @@ class ExamContentCacheService
 {
     public function getExamContent(int $examId): array
     {
-        return Cache::remember(
+        return $this->store()->remember(
             $this->cacheKey($examId),
             now()->addSeconds((int) config('exam.content_cache_ttl_seconds', 1800)),
             function () use ($examId): array {
@@ -48,12 +48,18 @@ class ExamContentCacheService
 
     public function invalidateExamContent(int $examId): void
     {
-        Cache::forget($this->cacheKey($examId));
+        $this->store()->forget($this->cacheKey($examId));
     }
 
     public function cacheKey(int $examId): string
     {
         return 'exam:content:v1:'.$examId;
     }
-}
 
+    protected function store()
+    {
+        $store = config('exam.content_cache_store');
+
+        return $store ? Cache::store($store) : Cache::store();
+    }
+}
