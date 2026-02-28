@@ -11,9 +11,9 @@
         <div class="rounded-xl border border-gray-200 bg-white p-5">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-900">{{ $attempt->exam->title }}</h3>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ $examContent['title'] }}</h3>
                     <p class="mt-1 text-sm text-gray-600">Status: <span id="attempt-status" class="font-semibold">{{ $attempt->status }}</span></p>
-                    <p class="mt-1 text-sm text-gray-600"><span id="question-step-label" class="font-semibold">Soal 1</span> dari {{ $attempt->exam->questions->count() }}</p>
+                    <p class="mt-1 text-sm text-gray-600"><span id="question-step-label" class="font-semibold">Soal 1</span> dari {{ count($examContent['questions']) }}</p>
                 </div>
                 <div class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm">
                     Sisa Waktu: <span id="timer-display" class="font-bold text-indigo-700">--:--</span>
@@ -22,30 +22,30 @@
             <p id="autosave-status" class="mt-3 text-xs text-gray-500">Autosave aktif.</p>
         </div>
 
-        @foreach ($attempt->exam->questions as $question)
+        @foreach ($examContent['questions'] as $question)
             @php
-                $myAnswer = $attempt->answers->firstWhere('exam_question_id', $question->id);
+                $myAnswer = $answersByQuestion->get($question['id']);
             @endphp
             <div
                 class="rounded-xl border border-gray-200 bg-white p-5 {{ $loop->first ? '' : 'hidden' }}"
                 data-question-card
-                data-question-id="{{ $question->id }}"
-                data-question-order="{{ $question->order }}"
+                data-question-id="{{ $question['id'] }}"
+                data-question-order="{{ $question['order'] }}"
                 data-answer-version="{{ $myAnswer?->lock_version ?? 0 }}"
             >
-                <p class="font-semibold text-gray-900">#{{ $question->order }}. {{ $question->question_text }}</p>
+                <p class="font-semibold text-gray-900">#{{ $question['order'] }}. {{ $question['question_text'] }}</p>
                 <div class="mt-3 space-y-2">
-                    @foreach ($question->options as $option)
+                    @foreach ($question['options'] as $option)
                         <label class="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm">
                             <input
                                 type="radio"
-                                name="question_{{ $question->id }}"
-                                value="{{ $option->id }}"
+                                name="question_{{ $question['id'] }}"
+                                value="{{ $option['id'] }}"
                                 data-option-input
-                                data-question-id="{{ $question->id }}"
-                                {{ (int) ($myAnswer->exam_option_id ?? 0) === (int) $option->id ? 'checked' : '' }}
+                                data-question-id="{{ $question['id'] }}"
+                                {{ (int) ($myAnswer->exam_option_id ?? 0) === (int) $option['id'] ? 'checked' : '' }}
                             >
-                            <span>{{ $option->option_text }}</span>
+                            <span>{{ $option['option_text'] }}</span>
                         </label>
                     @endforeach
                 </div>

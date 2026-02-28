@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\User;
+use App\Services\ExamContentCacheService;
 use App\Services\ExamLifecycleService;
 use App\Services\SecurityAuditService;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -19,6 +20,7 @@ class AdminExamController extends Controller
 {
     public function __construct(
         protected ExamLifecycleService $examLifecycleService,
+        protected ExamContentCacheService $examContentCacheService,
         protected SecurityAuditService $securityAuditService
     ) {
     }
@@ -144,6 +146,7 @@ class AdminExamController extends Controller
         } catch (AuthorizationException $exception) {
             return back()->withErrors(['publish' => $exception->getMessage()]);
         }
+        $this->examContentCacheService->invalidateExamContent((int) $exam->id);
 
         $this->securityAuditService->log($request, 'exam_published', $exam, [
             'status' => $exam->fresh()?->status,
@@ -164,6 +167,7 @@ class AdminExamController extends Controller
             'title' => $exam->title,
             'status' => $exam->status,
         ];
+        $this->examContentCacheService->invalidateExamContent((int) $exam->id);
         $exam->delete();
 
         $this->securityAuditService->log($request, 'exam_deleted', null, $examSnapshot);

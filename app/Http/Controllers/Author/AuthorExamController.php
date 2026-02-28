@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamOption;
 use App\Models\ExamQuestion;
+use App\Services\ExamContentCacheService;
 use App\Services\AuthorQuestionService;
 use App\Services\SecurityAuditService;
 use Illuminate\Http\RedirectResponse;
@@ -17,7 +18,8 @@ class AuthorExamController extends Controller
 {
     public function __construct(
         protected SecurityAuditService $securityAuditService,
-        protected AuthorQuestionService $authorQuestionService
+        protected AuthorQuestionService $authorQuestionService,
+        protected ExamContentCacheService $examContentCacheService
     ) {
     }
 
@@ -96,6 +98,7 @@ class AuthorExamController extends Controller
                 'is_correct' => (int) $data['correct_option'] === (int) $index,
             ]);
         }
+        $this->examContentCacheService->invalidateExamContent((int) $exam->id);
 
         $this->securityAuditService->log($request, 'question_created', $question, [
             'exam_id' => $exam->id,
@@ -180,6 +183,7 @@ class AuthorExamController extends Controller
                 'is_correct' => $correctOptionIndex === $index,
             ]);
         }
+        $this->examContentCacheService->invalidateExamContent((int) $exam->id);
 
         $this->securityAuditService->log($request, 'question_updated', $question, [
             'exam_id' => $exam->id,
@@ -212,6 +216,7 @@ class AuthorExamController extends Controller
         ];
 
         $this->authorQuestionService->deleteQuestion($exam, $question);
+        $this->examContentCacheService->invalidateExamContent((int) $exam->id);
 
         $this->securityAuditService->log($request, 'question_deleted', null, $questionSnapshot);
 

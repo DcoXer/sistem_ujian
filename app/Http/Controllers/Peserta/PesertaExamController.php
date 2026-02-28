@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\User;
+use App\Services\ExamContentCacheService;
 use App\Services\ExamParticipationService;
 use App\Services\ExamLifecycleService;
 use App\Services\SecurityAuditService;
@@ -25,6 +26,7 @@ class PesertaExamController extends Controller
     public function __construct(
         protected ExamParticipationService $participationService,
         protected ExamLifecycleService $examLifecycleService,
+        protected ExamContentCacheService $examContentCacheService,
         protected SecurityAuditService $securityAuditService
     ) {
     }
@@ -102,9 +104,11 @@ class PesertaExamController extends Controller
     public function show(ExamAttempt $attempt): View
     {
         $this->authorize('view', $attempt);
-        $attempt->load(['exam.questions.options', 'answers']);
+        $attempt->load(['exam:id,title', 'answers']);
+        $examContent = $this->examContentCacheService->getExamContent((int) $attempt->exam_id);
+        $answersByQuestion = $attempt->answers->keyBy('exam_question_id');
 
-        return view('peserta.exams.show', compact('attempt'));
+        return view('peserta.exams.show', compact('attempt', 'examContent', 'answersByQuestion'));
     }
 
     public function saveAnswer(Request $request, ExamAttempt $attempt): JsonResponse|Response|RedirectResponse

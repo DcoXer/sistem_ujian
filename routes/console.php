@@ -12,6 +12,8 @@ return function (\Illuminate\Console\Scheduling\Schedule $schedule) {
     $schedule->command('exams:finish-expired')->everyMinute();
     // every minute we lock active attempts whose time has ended.
     $schedule->command('exams:expire-attempts')->everyMinute();
+    // prewarm static question content ahead of start spikes.
+    $schedule->command('exams:warm-content --window=15')->everyFiveMinutes();
     // prune aged audit logs daily based on retention policy.
     $schedule->command('security:prune-audits')->daily();
 };
