@@ -2,6 +2,11 @@
 
 Sistem ini menyelesaikan masalah eksekusi ujian berbasis waktu dengan lifecycle ketat, role boundary tegas, dan guardrail test agar state tidak bocor.
 
+## Project Positioning
+Ini adalah **Proof of Concept (PoC)** untuk **Enterprise-grade Exam Engine**.
+
+Target utama repository ini adalah menunjukkan arsitektur domain, integritas state machine, dan strategi concurrency. Live demo bisa berjalan pada environment terbatas, tetapi kapasitas uptime production tetap bergantung pada infrastruktur runtime.
+
 ## Core Guarantees
 - Lifecycle exam dikunci: `draft -> running -> finished`.
 - Attempt peserta dikunci: `active -> submitted -> finished`.
@@ -12,6 +17,12 @@ Sistem ini menyelesaikan masalah eksekusi ujian berbasis waktu dengan lifecycle 
 - Peserta tidak bisa lihat result sebelum exam `finished`.
 
 Jika salah satu jaminan di atas dilanggar, itu dianggap bug kritis.
+
+## Concurrency & Integrity
+- **Optimistic Concurrency Control (OCC)** dipakai pada autosave jawaban peserta untuk mencegah race condition/out-of-order write menimpa jawaban terbaru.
+- **Atomic cache lock** dipakai pada exam content caching untuk mencegah cache stampede (dogpile effect) saat request serentak pada cache miss.
+- **409 conflict contract** dipakai saat terjadi stale write/state conflict agar frontend bisa recovery terarah, bukan silent overwrite.
+- **State mutation authority** tetap di service layer; controller tidak memutuskan domain state.
 
 ## Author Role: Explicit Limitations
 - Author tidak bisa create exam.
@@ -36,6 +47,14 @@ Jika salah satu jaminan di atas dilanggar, itu dianggap bug kritis.
 - `php artisan exams:expire-attempts`
 
 Scheduler wajib aktif agar lifecycle berjalan konsisten.
+
+## Graceful Degradation (Demo Environment)
+Demo live dapat berjalan dengan fallback konfigurasi terbatas (contoh shared hosting tanpa Redis):
+- cache menggunakan store dasar (file/database),
+- scheduler menyesuaikan kemampuan hosting,
+- beberapa optimasi throughput tidak maksimal.
+
+Kode tetap disiapkan untuk scale-up saat infrastruktur memadai (Redis, worker/scheduler stabil, tuning PHP-FPM/Nginx/DB).
 
 ## Regression Gate
 - Jalankan semua: `php artisan test`
