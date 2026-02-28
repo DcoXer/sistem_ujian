@@ -31,6 +31,7 @@
                 data-question-card
                 data-question-id="{{ $question->id }}"
                 data-question-order="{{ $question->order }}"
+                data-answer-version="{{ $myAnswer?->updated_at?->toIso8601String() }}"
             >
                 <p class="font-semibold text-gray-900">#{{ $question->order }}. {{ $question->question_text }}</p>
                 <div class="mt-3 space-y-2">
@@ -95,6 +96,13 @@
             let hasExpired = false;
             let currentQuestionIndex = 0;
             const totalQuestions = questionCards.length;
+            const answerVersions = {};
+
+            questionCards.forEach((card) => {
+                const questionId = card.dataset.questionId;
+                if (!questionId) return;
+                answerVersions[questionId] = card.dataset.answerVersion || null;
+            });
 
             const formatTime = (totalSeconds) => {
                 const safe = Math.max(0, Math.floor(Number(totalSeconds || 0)));
@@ -191,6 +199,9 @@
                 const formData = new FormData();
                 formData.append('question_id', questionId);
                 formData.append('option_id', optionId);
+                if (answerVersions[questionId]) {
+                    formData.append('answer_version', answerVersions[questionId]);
+                }
 
                 try {
                     const res = await fetch(answerUrl, {
@@ -203,7 +214,12 @@
                     });
 
                     if (res.ok) {
+                        const json = await res.json();
+                        answerVersions[questionId] = json.answer_version || answerVersions[questionId] || null;
                         autosaveStatus.textContent = 'Jawaban tersimpan otomatis.';
+                    } else if (res.status === 409) {
+                        const conflict = await res.json().catch(() => ({}));
+                        autosaveStatus.textContent = conflict.message || 'Jawaban bentrok. Muat ulang halaman untuk sinkronisasi.';
                     } else {
                         autosaveStatus.textContent = 'Gagal autosave. Coba pilih jawaban lagi.';
                     }

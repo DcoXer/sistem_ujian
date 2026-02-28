@@ -114,15 +114,17 @@ class PesertaExamController extends Controller
             'question_id' => ['required', 'integer', 'min:1'],
             'option_id' => ['nullable', 'integer', 'min:1'],
             'answer_text' => ['nullable', 'string'],
+            'answer_version' => ['nullable', 'date'],
         ]);
 
         try {
-            $this->participationService->saveAnswer(
+            $answer = $this->participationService->saveAnswer(
                 $request->user(),
                 $attempt,
                 (int) $data['question_id'],
                 isset($data['option_id']) ? (int) $data['option_id'] : null,
-                $data['answer_text'] ?? null
+                $data['answer_text'] ?? null,
+                $data['answer_version'] ?? null
             );
         } catch (StateConflictException $exception) {
             if ($request->expectsJson()) {
@@ -133,7 +135,10 @@ class PesertaExamController extends Controller
         }
 
         if ($request->expectsJson()) {
-            return response()->json(['status' => 'answer-saved']);
+            return response()->json([
+                'status' => 'answer-saved',
+                'answer_version' => $answer->updated_at?->toIso8601String(),
+            ]);
         }
 
         return back()->with('status', 'answer-saved');

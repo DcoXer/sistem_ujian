@@ -9,6 +9,7 @@ use App\Models\ExamAttempt;
 use App\Models\ExamOption;
 use App\Models\ExamQuestion;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -56,24 +57,56 @@ class ExamParticipationService
         });
     }
 
-    public function saveAnswer(User $user, ExamAttempt $attempt, int $questionId, ?int $optionId, ?string $answerText = null): ExamAnswer
+    public function saveAnswer(
+        User $user,
+        ExamAttempt $attempt,
+        int $questionId,
+        ?int $optionId,
+        ?string $answerText = null,
+        ?string $expectedVersion = null
+    ): ExamAnswer
     {
         $this->assertEditableAttempt($user, $attempt);
         $question = $this->resolveQuestionForAttempt($attempt, $questionId);
         $validatedOptionId = $this->resolveOptionForQuestion($question->id, $optionId);
 
-        return DB::transaction(function () use ($attempt, $question, $validatedOptionId, $answerText) {
-            return ExamAnswer::updateOrCreate(
-                [
-                    'exam_attempt_id' => $attempt->id,
-                    'exam_question_id' => $question->id,
-                ],
-                [
+        return DB::transaction(function () use ($attempt, $question, $validatedOptionId, $answerText, $expectedVersion) {
+            $existingAnswer = ExamAnswer::query()
+                ->where('exam_attempt_id', $attempt->id)
+                ->where('exam_question_id', $question->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($expectedVersion !== null) {
+                if (! $existingAnswer || ! $existingAnswer->updated_at) {
+                    throw new StateConflictException('Jawaban sudah berubah. Muat ulang halaman lalu coba lagi.');
+                }
+
+                $expected = CarbonImmutable::parse($expectedVersion)->utc()->format('Y-m-d H:i:s.u');
+                $current = $existingAnswer->updated_at->utc()->format('Y-m-d H:i:s.u');
+                if ($expected !== $current) {
+                    throw new StateConflictException('Jawaban sudah berubah. Muat ulang halaman lalu coba lagi.');
+                }
+            }
+
+            if ($existingAnswer) {
+                $existingAnswer->fill([
                     'exam_option_id' => $validatedOptionId,
                     'answer_text' => $answerText,
                     'locked_at' => null,
-                ]
-            );
+                ]);
+                $existingAnswer->save();
+
+                return $existingAnswer->fresh();
+            }
+
+            return ExamAnswer::create([
+                'exam_attempt_id' => $attempt->id,
+                'exam_question_id' => $question->id,
+                'exam_option_id' => $validatedOptionId,
+                'answer_text' => $answerText,
+                'locked_at' => null,
+            ]);
         });
     }
 

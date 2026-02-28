@@ -3,6 +3,7 @@
 namespace Tests\Feature\Exam;
 
 use App\Models\Exam;
+use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
 use App\Models\ExamOption;
 use App\Models\ExamQuestion;
@@ -161,5 +162,69 @@ class AttemptAuthorizationTest extends TestCase
             'exam_question_id' => $question1->id,
             'exam_option_id' => $foreignOption->id,
         ]);
+    }
+
+    public function test_peserta_answer_autosave_uses_occ_version_and_rejects_stale_write(): void
+    {
+        Carbon::setTestNow(now());
+
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $peserta = User::factory()->create(['role' => User::ROLE_PESERTA]);
+
+        $exam = Exam::create([
+            'title' => 'OCC Exam',
+            'start_at' => now()->subMinutes(5),
+            'end_at' => now()->addMinutes(30),
+            'duration_minutes' => 30,
+            'status' => Exam::STATUS_RUNNING,
+            'created_by' => $admin->id,
+        ]);
+
+        $question = ExamQuestion::create([
+            'exam_id' => $exam->id,
+            'question_text' => 'Question OCC',
+            'points' => 10,
+            'order' => 1,
+        ]);
+
+        $firstOption = ExamOption::create([
+            'exam_question_id' => $question->id,
+            'option_text' => 'A',
+            'is_correct' => false,
+        ]);
+
+        $secondOption = ExamOption::create([
+            'exam_question_id' => $question->id,
+            'option_text' => 'B',
+            'is_correct' => true,
+        ]);
+
+        $attempt = ExamAttempt::create([
+            'exam_id' => $exam->id,
+            'user_id' => $peserta->id,
+            'status' => ExamAttempt::STATUS_ACTIVE,
+            'started_at' => now()->subMinute(),
+        ]);
+
+        $answer = ExamAnswer::create([
+            'exam_attempt_id' => $attempt->id,
+            'exam_question_id' => $question->id,
+            'exam_option_id' => $firstOption->id,
+        ]);
+
+        $staleVersion = $answer->updated_at->copy()->subSecond()->toIso8601String();
+
+        $this->actingAs($peserta)
+            ->postJson(route('peserta.exams.answer', $attempt), [
+                'question_id' => $question->id,
+                'option_id' => $secondOption->id,
+                'answer_version' => $staleVersion,
+            ])
+            ->assertStatus(409);
+
+        $this->assertSame(
+            $firstOption->id,
+            (int) $answer->fresh()->exam_option_id
+        );
     }
 }
