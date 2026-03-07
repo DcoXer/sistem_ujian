@@ -13,9 +13,12 @@
                 <div class="min-w-0">
                     <h3 class="text-lg font-extrabold text-gray-900">{{ $exam->title }}</h3>
                     <p class="mt-1 text-sm font-semibold text-gray-600">{{ $exam->start_at?->format('d M Y H:i') }} - {{ $exam->end_at?->format('d M Y H:i') }}</p>
-                    <p class="mt-1 text-xs text-slate-500">Author soal: <br>
-                        <b>{{ $exam->author?->name ?? '-' }}</b>
+                    <p class="mt-1 text-xs text-slate-500">Teacher soal: <br>
+                        <b>{{ $exam->teacher?->name ?? '-' }}</b>
                     </p>
+                    <p class="mt-1 text-xs text-slate-500">Mata Pelajaran: <b>{{ $exam->subject?->name ?? '-' }}</b></p>
+                    <p class="mt-1 text-xs text-slate-500">Kelas Target: <b>{{ $exam->schoolClass?->name ?? '-' }}</b></p>
+                    <p class="mt-1 text-xs text-slate-500">Tahun Ajaran: <b>{{ $exam->schoolYear?->name ?? '-' }}</b></p>
                     <p class="mt-1 text-xs text-slate-500">Batas waktu pembuatan soal:<br> 
                         <b>{{ $exam->authoring_start_at?->format('d M Y H:i') ?? '-' }} - {{ $exam->authoring_end_at?->format('d M Y H:i') ?? '-' }}</b>
                     </p>
@@ -46,7 +49,7 @@
             <div class="rounded-lg border border-gray-200 bg-white p-3">
                 <p class="text-xs uppercase text-gray-500">Step 2</p>
                 <p class="mt-1 text-sm font-semibold text-gray-900">Pembuatan Soal</p>
-                <p class="text-xs {{ $questionsCount > 0 ? 'text-emerald-700' : 'text-amber-700' }}">{{ $questionsCount > 0 ? 'Soal tersedia' : 'Menunggu author' }}</p>
+                <p class="text-xs {{ $questionsCount > 0 ? 'text-emerald-700' : 'text-amber-700' }}">{{ $questionsCount > 0 ? 'Soal tersedia' : 'Menunggu teacher' }}</p>
             </div>
             <div class="rounded-lg border border-gray-200 bg-white p-3">
                 <p class="text-xs uppercase text-gray-500">Step 3</p>

@@ -7,4 +7,5 @@ return [
     'content_cache_lock_seconds' => (int) env('EXAM_CONTENT_CACHE_LOCK_SECONDS', 10),
     'content_cache_lock_wait_seconds' => (int) env('EXAM_CONTENT_CACHE_LOCK_WAIT_SECONDS', 3),
     'content_cache_fallback_wait_ms' => (int) env('EXAM_CONTENT_CACHE_FALLBACK_WAIT_MS', 1200),
+    'timer_poll_interval_seconds' => (int) env('EXAM_TIMER_POLL_INTERVAL_SECONDS', 30),
 ];

@@ -19,7 +19,7 @@ class AuthorQuestionManagementTest extends TestCase
         Carbon::setTestNow(now());
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $author = User::factory()->create(['role' => User::ROLE_AUTHOR]);
+        $author = User::factory()->create(['role' => User::ROLE_TEACHER]);
 
         $exam = Exam::create([
             'title' => 'Author Draft Exam',
@@ -32,7 +32,7 @@ class AuthorQuestionManagementTest extends TestCase
         ]);
 
         $this->actingAs($author)
-            ->post(route('author.exams.questions.store', $exam), [
+            ->post(route('teacher.exams.questions.store', $exam), [
                 'question_text' => '1 + 1 = ?',
                 'points' => 10,
                 'order' => 1,
@@ -45,7 +45,7 @@ class AuthorQuestionManagementTest extends TestCase
         $this->assertNotNull($question);
 
         $this->actingAs($author)
-            ->put(route('author.exams.questions.update', [$exam, $question]), [
+            ->put(route('teacher.exams.questions.update', [$exam, $question]), [
                 'question_text' => '2 + 2 = ?',
                 'points' => 20,
                 'order' => 1,
@@ -71,11 +71,11 @@ class AuthorQuestionManagementTest extends TestCase
             'duration_minutes' => 60,
             'status' => Exam::STATUS_DRAFT,
             'created_by' => $admin->id,
-            'author_id' => User::factory()->create(['role' => User::ROLE_AUTHOR])->id,
+            'author_id' => User::factory()->create(['role' => User::ROLE_TEACHER])->id,
         ]);
 
         $this->actingAs($admin)
-            ->post(route('author.exams.questions.store', $exam), [
+            ->post(route('teacher.exams.questions.store', $exam), [
                 'question_text' => 'X',
                 'points' => 10,
                 'order' => 1,
@@ -88,7 +88,7 @@ class AuthorQuestionManagementTest extends TestCase
     public function test_author_cannot_manage_questions_after_exam_is_not_draft(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $author = User::factory()->create(['role' => User::ROLE_AUTHOR]);
+        $author = User::factory()->create(['role' => User::ROLE_TEACHER]);
         $exam = Exam::create([
             'title' => 'Running Exam',
             'start_at' => now()->subHour(),
@@ -100,7 +100,7 @@ class AuthorQuestionManagementTest extends TestCase
         ]);
 
         $this->actingAs($author)
-            ->post(route('author.exams.questions.store', $exam), [
+            ->post(route('teacher.exams.questions.store', $exam), [
                 'question_text' => 'Tidak boleh',
                 'points' => 10,
                 'order' => 1,
@@ -113,8 +113,8 @@ class AuthorQuestionManagementTest extends TestCase
     public function test_author_cannot_manage_exam_assigned_to_other_author(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $authorA = User::factory()->create(['role' => User::ROLE_AUTHOR]);
-        $authorB = User::factory()->create(['role' => User::ROLE_AUTHOR]);
+        $authorA = User::factory()->create(['role' => User::ROLE_TEACHER]);
+        $authorB = User::factory()->create(['role' => User::ROLE_TEACHER]);
 
         $exam = Exam::create([
             'title' => 'Assigned To Other Author',
@@ -127,7 +127,7 @@ class AuthorQuestionManagementTest extends TestCase
         ]);
 
         $this->actingAs($authorB)
-            ->post(route('author.exams.questions.store', $exam), [
+            ->post(route('teacher.exams.questions.store', $exam), [
                 'question_text' => 'Tidak boleh',
                 'points' => 10,
                 'order' => 1,
@@ -142,7 +142,7 @@ class AuthorQuestionManagementTest extends TestCase
         Carbon::setTestNow(now());
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $author = User::factory()->create(['role' => User::ROLE_AUTHOR]);
+        $author = User::factory()->create(['role' => User::ROLE_TEACHER]);
 
         $exam = Exam::create([
             'title' => 'Expired Draft Exam',
@@ -155,7 +155,7 @@ class AuthorQuestionManagementTest extends TestCase
         ]);
 
         $this->actingAs($author)
-            ->post(route('author.exams.questions.store', $exam), [
+            ->post(route('teacher.exams.questions.store', $exam), [
                 'question_text' => 'Tidak boleh lewat jadwal',
                 'points' => 10,
                 'order' => 1,
@@ -168,7 +168,7 @@ class AuthorQuestionManagementTest extends TestCase
     public function test_author_can_view_questions_page_after_exam_finished(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $author = User::factory()->create(['role' => User::ROLE_AUTHOR]);
+        $author = User::factory()->create(['role' => User::ROLE_TEACHER]);
 
         $exam = Exam::create([
             'title' => 'Finished Exam View',
@@ -183,7 +183,7 @@ class AuthorQuestionManagementTest extends TestCase
         ]);
 
         $this->actingAs($author)
-            ->get(route('author.exams.show', $exam))
+            ->get(route('teacher.exams.show', $exam))
             ->assertOk()
             ->assertSee('Soal ditampilkan read-only');
     }
@@ -191,7 +191,7 @@ class AuthorQuestionManagementTest extends TestCase
     public function test_author_cannot_view_questions_page_while_exam_running(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $author = User::factory()->create(['role' => User::ROLE_AUTHOR]);
+        $author = User::factory()->create(['role' => User::ROLE_TEACHER]);
 
         $exam = Exam::create([
             'title' => 'Running Exam No Author View',
@@ -206,14 +206,14 @@ class AuthorQuestionManagementTest extends TestCase
         ]);
 
         $this->actingAs($author)
-            ->get(route('author.exams.show', $exam))
+            ->get(route('teacher.exams.show', $exam))
             ->assertForbidden();
     }
 
     public function test_author_cannot_create_question_with_non_sequential_order(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $author = User::factory()->create(['role' => User::ROLE_AUTHOR]);
+        $author = User::factory()->create(['role' => User::ROLE_TEACHER]);
 
         $exam = Exam::create([
             'title' => 'Sequential Order Guard',
@@ -235,8 +235,8 @@ class AuthorQuestionManagementTest extends TestCase
         ]);
 
         $this->actingAs($author)
-            ->from(route('author.exams.show', $exam))
-            ->post(route('author.exams.questions.store', $exam), [
+            ->from(route('teacher.exams.show', $exam))
+            ->post(route('teacher.exams.questions.store', $exam), [
                 'question_text' => 'Soal loncat',
                 'points' => 10,
                 'order' => 50,
@@ -249,7 +249,7 @@ class AuthorQuestionManagementTest extends TestCase
     public function test_author_cannot_submit_html_tags_in_question_payload(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $author = User::factory()->create(['role' => User::ROLE_AUTHOR]);
+        $author = User::factory()->create(['role' => User::ROLE_TEACHER]);
 
         $exam = Exam::create([
             'title' => 'HTML Guard',
@@ -264,8 +264,8 @@ class AuthorQuestionManagementTest extends TestCase
         ]);
 
         $this->actingAs($author)
-            ->from(route('author.exams.show', $exam))
-            ->post(route('author.exams.questions.store', $exam), [
+            ->from(route('teacher.exams.show', $exam))
+            ->post(route('teacher.exams.questions.store', $exam), [
                 'question_text' => '<script>alert(1)</script>',
                 'points' => 10,
                 'order' => 1,
@@ -280,7 +280,7 @@ class AuthorQuestionManagementTest extends TestCase
         config()->set('exam.author_max_questions_per_exam', 1);
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $author = User::factory()->create(['role' => User::ROLE_AUTHOR]);
+        $author = User::factory()->create(['role' => User::ROLE_TEACHER]);
 
         $exam = Exam::create([
             'title' => 'Limit Guard Exam',
@@ -302,8 +302,8 @@ class AuthorQuestionManagementTest extends TestCase
         ]);
 
         $this->actingAs($author)
-            ->from(route('author.exams.show', $exam))
-            ->post(route('author.exams.questions.store', $exam), [
+            ->from(route('teacher.exams.show', $exam))
+            ->post(route('teacher.exams.questions.store', $exam), [
                 'question_text' => 'Soal ke-2',
                 'points' => 10,
                 'order' => 2,
@@ -316,7 +316,7 @@ class AuthorQuestionManagementTest extends TestCase
     public function test_author_cannot_change_question_order_after_created(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $author = User::factory()->create(['role' => User::ROLE_AUTHOR]);
+        $author = User::factory()->create(['role' => User::ROLE_TEACHER]);
 
         $exam = Exam::create([
             'title' => 'Immutable Question Order',
@@ -343,8 +343,8 @@ class AuthorQuestionManagementTest extends TestCase
         ]);
 
         $this->actingAs($author)
-            ->from(route('author.exams.show', $exam))
-            ->put(route('author.exams.questions.update', [$exam, $question]), [
+            ->from(route('teacher.exams.show', $exam))
+            ->put(route('teacher.exams.questions.update', [$exam, $question]), [
                 'question_text' => 'Soal update',
                 'points' => 20,
                 'order' => 2,
@@ -359,7 +359,7 @@ class AuthorQuestionManagementTest extends TestCase
     public function test_author_can_delete_question_and_remaining_orders_are_reindexed(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $author = User::factory()->create(['role' => User::ROLE_AUTHOR]);
+        $author = User::factory()->create(['role' => User::ROLE_TEACHER]);
 
         $exam = Exam::create([
             'title' => 'Delete Question Exam',
@@ -388,7 +388,7 @@ class AuthorQuestionManagementTest extends TestCase
         ]);
 
         $this->actingAs($author)
-            ->delete(route('author.exams.questions.destroy', [$exam, $q1]))
+            ->delete(route('teacher.exams.questions.destroy', [$exam, $q1]))
             ->assertSessionHasNoErrors();
 
         $this->assertDatabaseMissing('exam_questions', ['id' => $q1->id]);
@@ -398,8 +398,8 @@ class AuthorQuestionManagementTest extends TestCase
     public function test_author_cannot_delete_question_when_exam_has_attempts(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $author = User::factory()->create(['role' => User::ROLE_AUTHOR]);
-        $peserta = User::factory()->create(['role' => User::ROLE_PESERTA]);
+        $author = User::factory()->create(['role' => User::ROLE_TEACHER]);
+        $peserta = User::factory()->create(['role' => User::ROLE_STUDENT]);
 
         $exam = Exam::create([
             'title' => 'No Delete With Attempts',
@@ -428,9 +428,11 @@ class AuthorQuestionManagementTest extends TestCase
         ]);
 
         $this->actingAs($author)
-            ->delete(route('author.exams.questions.destroy', [$exam, $question]))
+            ->delete(route('teacher.exams.questions.destroy', [$exam, $question]))
             ->assertSessionHasErrors('question_delete');
 
         $this->assertDatabaseHas('exam_questions', ['id' => $question->id]);
     }
 }
+
+

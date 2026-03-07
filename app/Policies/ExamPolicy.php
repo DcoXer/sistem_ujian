@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Exam;
+use App\Models\TeacherSubject;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
@@ -15,10 +16,29 @@ class ExamPolicy
 
     public function update(User $user, Exam $exam): bool
     {
-        return $user->role === User::ROLE_AUTHOR
-            && $exam->status === Exam::STATUS_DRAFT
+        if ($user->role !== User::ROLE_TEACHER) {
+            return false;
+        }
+
+        $teacherId = (int) ($exam->teacher_id ?? $exam->author_id ?? 0);
+
+        if (! (
+            $exam->status === Exam::STATUS_DRAFT
             && $exam->isWithinAuthoringWindow()
-            && (int) $exam->author_id === (int) $user->id;
+            && $teacherId === (int) $user->id
+        )) {
+            return false;
+        }
+
+        if (! $exam->subject_id || ! $exam->class_id) {
+            return true;
+        }
+
+        return TeacherSubject::query()
+            ->where('teacher_id', $user->id)
+            ->where('subject_id', $exam->subject_id)
+            ->where('class_id', $exam->class_id)
+            ->exists();
     }
 
     public function publish(User $user, Exam $exam): bool
@@ -30,9 +50,9 @@ class ExamPolicy
 
     public function viewAuthoredQuestions(User $user, Exam $exam): bool
     {
-        return $user->role === User::ROLE_AUTHOR
+        return $user->role === User::ROLE_TEACHER
             && $exam->status === Exam::STATUS_FINISHED
-            && (int) $exam->author_id === (int) $user->id;
+            && (int) ($exam->teacher_id ?? $exam->author_id ?? 0) === (int) $user->id;
     }
 
     public function delete(User $user, Exam $exam): bool
@@ -47,8 +67,8 @@ class ExamPolicy
 
     public function start(User $user, Exam $exam): Response
     {
-        if ($user->role !== User::ROLE_PESERTA) {
-            return Response::deny('Hanya peserta yang bisa mulai ujian.');
+        if ($user->role !== User::ROLE_STUDENT) {
+            return Response::deny('Hanya student yang bisa mulai ujian.');
         }
 
         if ($exam->status !== Exam::STATUS_RUNNING) {
@@ -58,6 +78,10 @@ class ExamPolicy
         $now = now();
         if ($now->lt($exam->start_at) || $now->gt($exam->end_at)) {
             return Response::deny('Ujian tidak dalam rentang waktu aktif.');
+        }
+
+        if (! $exam->isEligibleForPeserta($user)) {
+            return Response::deny('Ujian tidak tersedia untuk kelas atau tahun ajaran kamu.');
         }
 
         return Response::allow();

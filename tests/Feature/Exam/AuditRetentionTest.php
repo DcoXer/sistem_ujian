@@ -21,7 +21,7 @@ class AuditRetentionTest extends TestCase
         Carbon::setTestNow(now());
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $peserta = User::factory()->create(['role' => User::ROLE_PESERTA]);
+        $peserta = User::factory()->create(['role' => User::ROLE_STUDENT]);
         $exam = Exam::create([
             'title' => 'Retention Exam',
             'start_at' => now()->subHour(),
@@ -76,3 +76,4 @@ class AuditRetentionTest extends TestCase
         $this->assertDatabaseMissing('exam_attempt_audits', ['action' => 'old_attempt_audit']);
     }
 }
+

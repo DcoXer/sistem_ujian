@@ -16,7 +16,7 @@ class MaliciousAuthorTest extends TestCase
     public function test_author_cannot_escalate_to_admin_publish_and_user_management(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $author = User::factory()->create(['role' => User::ROLE_AUTHOR]);
+        $author = User::factory()->create(['role' => User::ROLE_TEACHER]);
 
         $exam = Exam::create([
             'title' => 'Escalation Exam',
@@ -45,8 +45,8 @@ class MaliciousAuthorTest extends TestCase
 
     public function test_author_cannot_create_exam_even_with_forged_author_id_payload(): void
     {
-        $author = User::factory()->create(['role' => User::ROLE_AUTHOR]);
-        $otherAuthor = User::factory()->create(['role' => User::ROLE_AUTHOR]);
+        $author = User::factory()->create(['role' => User::ROLE_TEACHER]);
+        $otherAuthor = User::factory()->create(['role' => User::ROLE_TEACHER]);
 
         $this->actingAs($author)
             ->post(route('admin.exams.store'), [
@@ -66,4 +66,5 @@ class MaliciousAuthorTest extends TestCase
         $this->assertFalse(Schema::hasColumn('exam_questions', 'author_id'));
     }
 }
+
 

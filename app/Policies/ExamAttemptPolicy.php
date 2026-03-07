@@ -13,7 +13,7 @@ class ExamAttemptPolicy
             return true;
         }
 
-        return $user->role === User::ROLE_PESERTA && (int) $attempt->user_id === (int) $user->id;
+        return $user->role === User::ROLE_STUDENT && (int) $attempt->user_id === (int) $user->id;
     }
 
     public function manualScore(User $user, ExamAttempt $attempt): bool
@@ -29,13 +29,13 @@ class ExamAttemptPolicy
     {
         // Policy only answers "who can attempt answer action".
         // State/clock transitions are owned by ExamParticipationService.
-        return $user->role === User::ROLE_PESERTA
+        return $user->role === User::ROLE_STUDENT
             && (int) $attempt->user_id === (int) $user->id;
     }
 
     public function submit(User $user, ExamAttempt $attempt): bool
     {
-        if ($user->role !== User::ROLE_PESERTA || (int) $attempt->user_id !== (int) $user->id) {
+        if ($user->role !== User::ROLE_STUDENT || (int) $attempt->user_id !== (int) $user->id) {
             return false;
         }
 

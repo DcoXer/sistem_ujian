@@ -21,7 +21,7 @@ class IdleTimeoutTest extends TestCase
         $this->assertSame(1, (int) config('security.attempt_idle_timeout_minutes'));
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $peserta = User::factory()->create(['role' => User::ROLE_PESERTA]);
+        $peserta = User::factory()->create(['role' => User::ROLE_STUDENT]);
 
         $exam = Exam::create([
             'title' => 'Idle Timeout Exam',
@@ -61,3 +61,4 @@ class IdleTimeoutTest extends TestCase
         ]);
     }
 }
+

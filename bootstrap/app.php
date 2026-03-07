@@ -2,10 +2,10 @@
 
 use App\Exceptions\StateConflictException;
 use App\Http\Middleware\EnsureUserIsAdmin;
-use App\Http\Middleware\EnsureUserIsAuthor;
+use App\Http\Middleware\EnsureUserIsTeacher;
 use App\Http\Middleware\EnsureManualScoreIntent;
 use App\Http\Middleware\EnsureUserIsOperator;
-use App\Http\Middleware\EnsureUserIsPeserta;
+use App\Http\Middleware\EnsureUserIsStudent;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,9 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
-            'author' => EnsureUserIsAuthor::class,
+            'teacher' => EnsureUserIsTeacher::class,
             'operator' => EnsureUserIsOperator::class,
-            'peserta' => EnsureUserIsPeserta::class,
+            'student' => EnsureUserIsStudent::class,
             'manual_score_intent' => EnsureManualScoreIntent::class,
         ]);
     })

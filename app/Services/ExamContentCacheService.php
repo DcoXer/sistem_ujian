@@ -6,9 +6,13 @@ use App\Models\Exam;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class ExamContentCacheService
 {
+    protected ?bool $hasQuestionImageColumn = null;
+
     public function getExamContent(int $examId): array
     {
         $store = $this->store();
@@ -75,7 +79,7 @@ class ExamContentCacheService
 
     public function cacheKey(int $examId): string
     {
-        return 'exam:content:v1:'.$examId;
+        return 'exam:content:v2:'.$examId;
     }
 
     protected function lockKey(int $examId): string
@@ -88,7 +92,7 @@ class ExamContentCacheService
         $exam = Exam::query()
             ->select(['id', 'title'])
             ->with([
-                'questions' => fn ($query) => $query->select(['id', 'exam_id', 'question_text', 'points', 'order']),
+                'questions' => fn ($query) => $query->select($this->questionSelectColumns()),
                 'questions.options' => fn ($query) => $query->select(['id', 'exam_question_id', 'option_text']),
             ])
             ->findOrFail($examId);
@@ -101,6 +105,9 @@ class ExamContentCacheService
                     'id' => (int) $question->id,
                     'order' => (int) $question->order,
                     'question_text' => $question->question_text,
+                    'question_image_url' => $this->hasQuestionImageColumn() && $question->question_image_path
+                        ? Storage::disk('public')->url($question->question_image_path)
+                        : null,
                     'points' => (int) $question->points,
                     'options' => $question->options->map(fn ($option) => [
                         'id' => (int) $option->id,
@@ -121,5 +128,24 @@ class ExamContentCacheService
     protected function supportsLocks(CacheRepository $store): bool
     {
         return method_exists($store->getStore(), 'lock');
+    }
+
+    protected function questionSelectColumns(): array
+    {
+        $columns = ['id', 'exam_id', 'question_text', 'points', 'order'];
+        if ($this->hasQuestionImageColumn()) {
+            $columns[] = 'question_image_path';
+        }
+
+        return $columns;
+    }
+
+    protected function hasQuestionImageColumn(): bool
+    {
+        if ($this->hasQuestionImageColumn !== null) {
+            return $this->hasQuestionImageColumn;
+        }
+
+        return $this->hasQuestionImageColumn = Schema::hasColumn('exam_questions', 'question_image_path');
     }
 }

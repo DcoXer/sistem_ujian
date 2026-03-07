@@ -15,12 +15,13 @@
 
         @if ($role === \App\Models\User::ROLE_ADMIN)
             @include('dashboard.role-admin')
-        @elseif ($role === \App\Models\User::ROLE_AUTHOR)
-            @include('dashboard.role-author')
+        @elseif ($role === \App\Models\User::ROLE_TEACHER)
+            @include('dashboard.role-teacher')
         @elseif ($role === \App\Models\User::ROLE_OPERATOR)
             @include('dashboard.role-operator')
         @else
-            @include('dashboard.role-peserta')
+            @include('dashboard.role-student')
         @endif
     </div>
 </x-app-layout>
+

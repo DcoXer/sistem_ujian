@@ -21,7 +21,7 @@ class OperatorControlTest extends TestCase
         Carbon::setTestNow(now());
 
         $operator = User::factory()->create(['role' => User::ROLE_OPERATOR]);
-        $peserta = User::factory()->create(['role' => User::ROLE_PESERTA]);
+        $peserta = User::factory()->create(['role' => User::ROLE_STUDENT]);
         $exam = Exam::create([
             'title' => 'Exam Operator Control',
             'start_at' => now()->subHour(),
@@ -60,7 +60,7 @@ class OperatorControlTest extends TestCase
         Carbon::setTestNow(now());
 
         $operator = User::factory()->create(['role' => User::ROLE_OPERATOR]);
-        $peserta = User::factory()->create(['role' => User::ROLE_PESERTA]);
+        $peserta = User::factory()->create(['role' => User::ROLE_STUDENT]);
         $exam = Exam::create([
             'title' => 'Exam Finished',
             'start_at' => now()->subHours(2),
@@ -95,7 +95,7 @@ class OperatorControlTest extends TestCase
         Carbon::setTestNow(now());
 
         $operator = User::factory()->create(['role' => User::ROLE_OPERATOR]);
-        $peserta = User::factory()->create(['role' => User::ROLE_PESERTA]);
+        $peserta = User::factory()->create(['role' => User::ROLE_STUDENT]);
         $exam = Exam::create([
             'title' => 'Objective Exam',
             'start_at' => now()->subHour(),
@@ -173,7 +173,7 @@ class OperatorControlTest extends TestCase
         Carbon::setTestNow(now());
 
         $operator = User::factory()->create(['role' => User::ROLE_OPERATOR]);
-        $peserta = User::factory()->create(['role' => User::ROLE_PESERTA]);
+        $peserta = User::factory()->create(['role' => User::ROLE_STUDENT]);
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
 
         $exam = Exam::create([
@@ -230,7 +230,7 @@ class OperatorControlTest extends TestCase
         Carbon::setTestNow(now());
 
         $operator = User::factory()->create(['role' => User::ROLE_OPERATOR]);
-        $peserta = User::factory()->create(['role' => User::ROLE_PESERTA]);
+        $peserta = User::factory()->create(['role' => User::ROLE_STUDENT]);
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
 
         $exam = Exam::create([
@@ -268,3 +268,4 @@ class OperatorControlTest extends TestCase
         $this->assertSame(ExamAttempt::STATUS_ACTIVE, $attempt->fresh()->status);
     }
 }
+

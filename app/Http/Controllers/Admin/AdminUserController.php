@@ -2,51 +2,41 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\UserAccountsExport;
 use App\Http\Controllers\Controller;
+use App\Models\SchoolClass;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AdminUserController extends Controller
 {
-    public function index(Request $request): View
+    public function index(): RedirectResponse
     {
-        $search = trim((string) $request->query('search', ''));
-        $role = trim((string) $request->query('role', ''));
-        $modal = trim((string) $request->query('modal', ''));
-        $modalUser = null;
+        return redirect()->route('admin.users.students.index');
+    }
 
-        $users = User::query()
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($inner) use ($search) {
-                    $inner->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
-                });
-            })
-            ->when(in_array($role, [User::ROLE_ADMIN, User::ROLE_AUTHOR, User::ROLE_OPERATOR, User::ROLE_PESERTA], true), function ($query) use ($role) {
-                $query->where('role', $role);
-            })
-            ->orderBy('name')
-            ->paginate(10)
-            ->withQueryString();
+    public function students(): View
+    {
+        return $this->renderByRole(User::ROLE_STUDENT);
+    }
 
-        if ($modal === 'edit') {
-            $modalUserId = (int) $request->query('user');
-            if ($modalUserId > 0) {
-                $modalUser = User::query()
-                    ->select('id', 'name', 'email', 'role')
-                    ->find($modalUserId);
-            }
-        }
+    public function teachers(): View
+    {
+        return $this->renderByRole(User::ROLE_TEACHER);
+    }
 
-        return view('admin.users.index', compact('users', 'search', 'role', 'modal', 'modalUser'));
+    public function operators(): View
+    {
+        return $this->renderByRole(User::ROLE_OPERATOR);
     }
 
     public function create(): RedirectResponse
     {
-        return redirect()->route('admin.users.index', ['modal' => 'create']);
+        return redirect()->route('admin.users.teachers.index', ['modal' => 'create']);
     }
 
     public function store(Request $request): RedirectResponse
@@ -54,13 +44,13 @@ class AdminUserController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)],
-            'role' => ['required', Rule::in([User::ROLE_ADMIN, User::ROLE_AUTHOR, User::ROLE_OPERATOR, User::ROLE_PESERTA])],
+            'role' => ['required', Rule::in([User::ROLE_ADMIN, User::ROLE_TEACHER, User::ROLE_OPERATOR])],
             'password' => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::defaults()],
         ]);
 
         User::create($data);
 
-        return redirect()->route('admin.users.index')->with('status', 'user-created');
+        return back()->with('status', 'user-created');
     }
 
     public function edit(User $user): RedirectResponse
@@ -76,7 +66,7 @@ class AdminUserController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($user->id)],
-            'role' => ['required', Rule::in([User::ROLE_ADMIN, User::ROLE_AUTHOR, User::ROLE_OPERATOR, User::ROLE_PESERTA])],
+            'role' => ['required', Rule::in([User::ROLE_ADMIN, User::ROLE_TEACHER, User::ROLE_OPERATOR])],
             'password' => ['nullable', 'confirmed', \Illuminate\Validation\Rules\Password::defaults()],
         ]);
 
@@ -94,7 +84,7 @@ class AdminUserController extends Controller
 
         $user->update($data);
 
-        return redirect()->route('admin.users.index')->with('status', 'user-updated');
+        return back()->with('status', 'user-updated');
     }
 
     public function destroy(Request $request, User $user): RedirectResponse
@@ -109,6 +99,59 @@ class AdminUserController extends Controller
 
         $user->delete();
 
-        return redirect()->route('admin.users.index')->with('status', 'user-deleted');
+        return back()->with('status', 'user-deleted');
+    }
+
+    public function export(Request $request)
+    {
+        $data = $request->validate([
+            'role' => ['required', Rule::in([User::ROLE_ADMIN, User::ROLE_OPERATOR, User::ROLE_TEACHER, User::ROLE_STUDENT])],
+            'class_id' => ['nullable', 'integer', Rule::exists('school_classes', 'id')],
+            'format' => ['nullable', Rule::in(['xlsx', 'csv'])],
+        ]);
+
+        $role = (string) $data['role'];
+        $classId = isset($data['class_id']) ? (int) $data['class_id'] : null;
+        $format = (string) ($data['format'] ?? 'xlsx');
+
+        if ($role === User::ROLE_STUDENT && ! $classId) {
+            return back()->withErrors(['export' => 'Export role student wajib pilih kelas.'])->withInput();
+        }
+
+        $query = User::query()
+            ->with('schoolClass:id,name')
+            ->where('role', $role)
+            ->orderBy('name');
+
+        $className = null;
+        if ($role === User::ROLE_STUDENT && $classId) {
+            $query->where('class_id', $classId);
+            $className = SchoolClass::query()->whereKey($classId)->value('name');
+        }
+
+        $rows = $query->get([
+            'id', 'name', 'email', 'role', 'class_id',
+            'nis', 'nisn', 'nik', 'birth_place', 'birth_date', 'guardian_name',
+        ]);
+
+        $safeRole = str_replace(' ', '-', strtolower($role));
+        $filename = 'akun-'.$safeRole;
+        if ($className) {
+            $filename .= '-'.str_replace(' ', '-', strtolower((string) $className));
+        }
+        $filename .= '-'.now()->format('Ymd_His').'.'.$format;
+
+        if ($format === 'csv') {
+            return Excel::download(new UserAccountsExport($rows), $filename, \Maatwebsite\Excel\Excel::CSV);
+        }
+
+        return Excel::download(new UserAccountsExport($rows), $filename, \Maatwebsite\Excel\Excel::XLSX);
+    }
+
+    protected function renderByRole(string $scopeRole): View
+    {
+        return view('admin.users.index', [
+            'scopeRole' => $scopeRole,
+        ]);
     }
 }

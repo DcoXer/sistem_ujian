@@ -52,7 +52,7 @@ class ExpirationTest extends TestCase
         $this->assertDatabaseHas('exams', ['id' => $expired->id, 'status' => Exam::STATUS_RUNNING]);
 
         $this->actingAs($user)
-            ->get(route('peserta.exams.index'))
+            ->get(route('student.exams.index'))
             ->assertDontSee('Expired exam');
     }
 
@@ -61,7 +61,7 @@ class ExpirationTest extends TestCase
         Carbon::setTestNow(now());
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $peserta = User::factory()->create(['role' => User::ROLE_PESERTA]);
+        $peserta = User::factory()->create(['role' => User::ROLE_STUDENT]);
 
         $exam = Exam::create([
             'title' => 'Attempt Expiry Test',
@@ -88,3 +88,5 @@ class ExpirationTest extends TestCase
         $this->assertNotNull($fresh->scoring_processed_at);
     }
 }
+
+

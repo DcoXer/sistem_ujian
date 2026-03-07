@@ -280,7 +280,7 @@ class ExamParticipationService
 
     protected function assertEditableAttempt(User $user, ExamAttempt $attempt): void
     {
-        if ((int) $attempt->user_id !== (int) $user->id || $user->role !== User::ROLE_PESERTA) {
+        if ((int) $attempt->user_id !== (int) $user->id || $user->role !== User::ROLE_STUDENT) {
             throw new AuthorizationException('Akses ditolak.');
         }
 

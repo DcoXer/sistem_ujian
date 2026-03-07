@@ -20,7 +20,7 @@ class AuditIntegrityTest extends TestCase
         Carbon::setTestNow(now());
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $author = User::factory()->create(['role' => User::ROLE_AUTHOR]);
+        $author = User::factory()->create(['role' => User::ROLE_TEACHER]);
 
         $exam = Exam::create([
             'title' => 'Audit Publish Exam',
@@ -67,7 +67,7 @@ class AuditIntegrityTest extends TestCase
         Carbon::setTestNow(now());
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $peserta = User::factory()->create(['role' => User::ROLE_PESERTA]);
+        $peserta = User::factory()->create(['role' => User::ROLE_STUDENT]);
 
         $exam = Exam::create([
             'title' => 'Audit Submit Exam',
@@ -100,7 +100,7 @@ class AuditIntegrityTest extends TestCase
 
         // Ensure at least one answer exists before submit.
         $this->actingAs($peserta)
-            ->post(route('peserta.exams.answer', $attempt), [
+            ->post(route('student.exams.answer', $attempt), [
                 'question_id' => $question->id,
                 'option_id' => $option->id,
             ]);
@@ -108,7 +108,7 @@ class AuditIntegrityTest extends TestCase
         $this->actingAs($peserta)
             ->withServerVariables(['REMOTE_ADDR' => '10.10.10.11'])
             ->withHeader('User-Agent', 'AuditTester/2.0')
-            ->post(route('peserta.exams.submit', $attempt))
+            ->post(route('student.exams.submit', $attempt))
             ->assertRedirect();
 
         $this->assertDatabaseHas('security_audits', [
@@ -121,4 +121,6 @@ class AuditIntegrityTest extends TestCase
         ]);
     }
 }
+
+
 

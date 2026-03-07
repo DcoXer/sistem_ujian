@@ -22,18 +22,38 @@
     </div>
 </section>
 
-<section id="daftar-peserta" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-    <h3 class="mb-3 text-base font-semibold text-slate-900">Daftar Peserta</h3>
-    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        @forelse ($pesertaUsers as $peserta)
-            <article class="rounded-lg border border-slate-200 p-3">
-                <p class="text-sm font-medium text-slate-900">{{ $peserta->name }}</p>
-                <p class="mt-1 text-xs text-slate-500">{{ $peserta->email }}</p>
-            </article>
-        @empty
-            <p class="text-sm text-slate-500">Belum ada peserta.</p>
-        @endforelse
+<section id="daftar-kelas" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <h3 class="mb-3 text-base font-semibold text-slate-900">Daftar Kelas</h3>
+    <p class="mb-4 text-sm text-slate-500">Klik tombol Buka untuk masuk ke halaman siswa per kelas dalam format tabel Livewire.</p>
+
+    <div class="overflow-x-auto rounded-xl border border-slate-200">
+        <table class="w-full min-w-[680px] text-sm">
+            <thead class="bg-slate-50 text-left text-slate-600">
+                <tr>
+                    <th class="px-4 py-3 font-medium">Kelas</th>
+                    <th class="px-4 py-3 font-medium">Tingkat</th>
+                    <th class="px-4 py-3 font-medium">Jumlah Siswa</th>
+                    <th class="px-4 py-3 font-medium text-right">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse ($operatorClasses as $class)
+                    <tr class="border-t border-slate-100">
+                        <td class="px-4 py-3 font-semibold text-slate-900">{{ $class->name }}</td>
+                        <td class="px-4 py-3 text-slate-700">{{ $class->grade_level ?? '-' }}</td>
+                        <td class="px-4 py-3 text-slate-700">{{ $class->students_count }}</td>
+                        <td class="px-4 py-3 text-right">
+                            <a href="{{ route('operator.classes.students.index', $class->id) }}" class="rounded border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">
+                                Buka
+                            </a>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="4" class="px-4 py-5 text-center text-slate-500">Belum ada data kelas.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 </section>
-
-

@@ -18,7 +18,7 @@ class ResultVisibilityTest extends TestCase
         Carbon::setTestNow(now());
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $peserta = User::factory()->create(['role' => User::ROLE_PESERTA]);
+        $peserta = User::factory()->create(['role' => User::ROLE_STUDENT]);
 
         $exam = Exam::create([
             'title' => 'Result Visibility Exam',
@@ -38,8 +38,8 @@ class ResultVisibilityTest extends TestCase
         ]);
 
         $this->actingAs($peserta)
-            ->get(route('peserta.exams.result', $attempt))
-            ->assertRedirect(route('peserta.exams.index'))
+            ->get(route('student.exams.result', $attempt))
+            ->assertRedirect(route('student.exams.index'))
             ->assertSessionHas('error', 'Hasil belum tersedia. Tunggu sampai ujian selesai.');
     }
 
@@ -48,7 +48,7 @@ class ResultVisibilityTest extends TestCase
         Carbon::setTestNow(now());
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $peserta = User::factory()->create(['role' => User::ROLE_PESERTA]);
+        $peserta = User::factory()->create(['role' => User::ROLE_STUDENT]);
 
         $exam = Exam::create([
             'title' => 'Result Final Exam',
@@ -71,7 +71,7 @@ class ResultVisibilityTest extends TestCase
         ]);
 
         $this->actingAs($peserta)
-            ->get(route('peserta.exams.result', $attempt))
+            ->get(route('student.exams.result', $attempt))
             ->assertOk();
     }
 
@@ -80,7 +80,7 @@ class ResultVisibilityTest extends TestCase
         Carbon::setTestNow(now());
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $peserta = User::factory()->create(['role' => User::ROLE_PESERTA]);
+        $peserta = User::factory()->create(['role' => User::ROLE_STUDENT]);
 
         $exam = Exam::create([
             'title' => 'Dashboard Hidden Score Exam',
@@ -109,3 +109,5 @@ class ResultVisibilityTest extends TestCase
             ->assertDontSee('Hasil Terakhir');
     }
 }
+
+

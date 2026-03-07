@@ -20,7 +20,7 @@ class SystemInvariantsTest extends TestCase
         Carbon::setTestNow(now());
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $peserta = User::factory()->create(['role' => User::ROLE_PESERTA]);
+        $peserta = User::factory()->create(['role' => User::ROLE_STUDENT]);
 
         $exam = Exam::create([
             'title' => 'Invariant Exam',
@@ -48,7 +48,7 @@ class SystemInvariantsTest extends TestCase
         Carbon::setTestNow(now());
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $peserta = User::factory()->create(['role' => User::ROLE_PESERTA]);
+        $peserta = User::factory()->create(['role' => User::ROLE_STUDENT]);
 
         $exam = Exam::create([
             'title' => 'Immutable Attempt Exam',
@@ -82,14 +82,16 @@ class SystemInvariantsTest extends TestCase
         ]);
 
         $this->actingAs($peserta)
-            ->post(route('peserta.exams.answer', $attempt), [
+            ->post(route('student.exams.answer', $attempt), [
                 'question_id' => $question->id,
                 'option_id' => $option->id,
             ])
             ->assertStatus(409);
 
         $this->actingAs($peserta)
-            ->post(route('peserta.exams.submit', $attempt))
+            ->post(route('student.exams.submit', $attempt))
             ->assertStatus(409);
     }
 }
+
+

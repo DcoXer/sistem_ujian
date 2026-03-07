@@ -35,24 +35,24 @@ class DatabaseSeeder extends Seeder
         );
 
         User::updateOrCreate(
-            ['email' => 'author@example.com'],
+            ['email' => 'teacher@example.com'],
             [
-                'name' => 'Author User',
+                'name' => 'Teacher User',
                 'password' => 'password',
-                'role' => User::ROLE_AUTHOR,
+                'role' => User::ROLE_TEACHER,
             ]
         );
 
         User::updateOrCreate(
-            ['email' => 'peserta@example.com'],
+            ['email' => 'student@example.com'],
             [
-                'name' => 'Peserta User',
+                'name' => 'Student User',
                 'password' => 'password',
-                'role' => User::ROLE_PESERTA,
+                'role' => User::ROLE_STUDENT,
             ]
         );
 
-        User::where('role', 'user')->update(['role' => User::ROLE_PESERTA]);
+        User::where('role', 'user')->update(['role' => User::ROLE_STUDENT]);
 
         $this->call([
             ExamSeeder::class,

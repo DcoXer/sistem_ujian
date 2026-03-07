@@ -2,6 +2,19 @@ const statusLabelMap = {
     'user-created': 'User berhasil dibuat.',
     'user-updated': 'User berhasil diupdate.',
     'user-deleted': 'User berhasil dihapus.',
+    'subject-created': 'Mata pelajaran berhasil ditambahkan.',
+    'subject-updated': 'Mata pelajaran berhasil diperbarui.',
+    'subject-deleted': 'Mata pelajaran berhasil dihapus.',
+    'subject-status-updated': 'Status mata pelajaran berhasil diubah.',
+    'class-created': 'Rombel berhasil ditambahkan.',
+    'class-updated': 'Rombel berhasil diperbarui.',
+    'school-year-created': 'Tahun ajaran berhasil ditambahkan.',
+    'school-year-activated': 'Tahun ajaran aktif berhasil diubah.',
+    'teacher-subject-assigned': 'Assignment guru mapel berhasil ditambahkan.',
+    'teacher-subject-removed': 'Assignment guru mapel berhasil dihapus.',
+    'homeroom-assigned': 'Wali kelas berhasil ditetapkan.',
+    'homeroom-removed': 'Assignment wali kelas berhasil dihapus.',
+    'student-updated-by-homeroom': 'Data siswa berhasil diperbarui.',
     'exam-created': 'Exam berhasil dibuat sebagai draft.',
     'question-added': 'Soal berhasil ditambahkan.',
     'exam-published': 'Exam berhasil dipublish.',
@@ -26,17 +39,95 @@ const parseJsonDataAttribute = (raw, fallback = {}) => {
     }
 };
 
+const detectToastKind = (kind, message = '') => {
+    if (kind) return kind;
+
+    const value = String(message || '').toLowerCase();
+    if (value.includes('hapus')) return 'delete';
+    if (value.includes('import') || value.includes('sync')) return 'import';
+    if (value.includes('ubah') || value.includes('update') || value.includes('diperbarui')) return 'update';
+    if (value.includes('tambah') || value.includes('dibuat')) return 'create';
+    if (value.includes('aktif')) return 'activate';
+    return 'info';
+};
+
 const createToastModule = (toastContainer) => {
-    const show = (type, message) => {
+    const show = (type, message, kind = '') => {
         if (!toastContainer || !message) return;
 
-        const el = document.createElement('div');
-        const styleByType = type === 'error'
-            ? 'border-rose-200 bg-rose-50 text-rose-800'
-            : 'border-emerald-200 bg-emerald-50 text-emerald-800';
+        const resolvedKind = type === 'error' ? 'error' : detectToastKind(kind, message);
+        const variants = {
+            error: {
+                box: 'border-rose-200 bg-rose-50 text-rose-800',
+                iconWrap: 'bg-rose-100 text-rose-700',
+                title: 'Belum Berhasil',
+                icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M4.93 19h14.14a2 2 0 001.73-3l-7.07-12a2 2 0 00-3.46 0l-7.07 12a2 2 0 001.73 3z" />',
+            },
+            create: {
+                box: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+                iconWrap: 'bg-emerald-100 text-emerald-700',
+                title: 'Berhasil Ditambahkan',
+                icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />',
+            },
+            update: {
+                box: 'border-blue-200 bg-blue-50 text-blue-800',
+                iconWrap: 'bg-blue-100 text-blue-700',
+                title: 'Berhasil Diperbarui',
+                icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.58m14.84 2A8 8 0 005.58 9m0 0H9m11 11v-5h-.58m0 0A8 8 0 018.42 15m11 0H15" />',
+            },
+            delete: {
+                box: 'border-amber-200 bg-amber-50 text-amber-800',
+                iconWrap: 'bg-amber-100 text-amber-700',
+                title: 'Berhasil Dihapus',
+                icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 7h12m-1 0-.87 12.142A2 2 0 0114.13 21H9.87a2 2 0 01-1.996-1.858L7 7m5-3v3m-3 0V4m6 0v3" />',
+            },
+            import: {
+                box: 'border-violet-200 bg-violet-50 text-violet-800',
+                iconWrap: 'bg-violet-100 text-violet-700',
+                title: 'Import Selesai',
+                icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M8 12l4 4m0 0 4-4m-4 4V4" />',
+            },
+            activate: {
+                box: 'border-indigo-200 bg-indigo-50 text-indigo-800',
+                iconWrap: 'bg-indigo-100 text-indigo-700',
+                title: 'Pengaturan Aktif',
+                icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />',
+            },
+            info: {
+                box: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+                iconWrap: 'bg-emerald-100 text-emerald-700',
+                title: 'Berhasil',
+                icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />',
+            },
+        };
 
-        el.className = `pointer-events-auto rounded-xl border px-4 py-3 text-sm shadow-lg transition ${styleByType}`;
-        el.textContent = message;
+        const variant = variants[resolvedKind] || variants.info;
+        const el = document.createElement('div');
+        el.className = `pointer-events-auto rounded-xl border px-4 py-3 shadow-lg transition ${variant.box}`;
+
+        const row = document.createElement('div');
+        row.className = 'flex items-start gap-3';
+
+        const iconWrap = document.createElement('span');
+        iconWrap.className = `mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-lg ${variant.iconWrap}`;
+        iconWrap.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-4 w-4">${variant.icon}</svg>`;
+
+        const content = document.createElement('div');
+        content.className = 'min-w-0';
+
+        const titleEl = document.createElement('p');
+        titleEl.className = 'text-sm font-semibold';
+        titleEl.textContent = variant.title;
+
+        const messageEl = document.createElement('p');
+        messageEl.className = 'mt-0.5 text-sm leading-5';
+        messageEl.textContent = message;
+
+        content.appendChild(titleEl);
+        content.appendChild(messageEl);
+        row.appendChild(iconWrap);
+        row.appendChild(content);
+        el.appendChild(row);
         toastContainer.appendChild(el);
 
         setTimeout(() => {
@@ -132,6 +223,46 @@ const initConfirmForms = (confirm) => {
             });
         });
     });
+};
+
+const initConfirmActions = (confirm) => {
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[wire\\:confirm], [data-confirm-message]');
+        if (!trigger) return;
+        if (trigger.dataset.confirmBypass === '1') return;
+
+        const message = trigger.getAttribute('wire:confirm') || trigger.dataset.confirmMessage || 'Apakah Anda yakin?';
+        const title = trigger.dataset.confirmTitle || 'Konfirmasi';
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        confirm.open({
+            title,
+            message,
+            onConfirm: () => {
+                trigger.dataset.confirmBypass = '1';
+
+                const wireConfirm = trigger.getAttribute('wire:confirm');
+                if (wireConfirm !== null) {
+                    trigger.removeAttribute('wire:confirm');
+                }
+
+                if (trigger.tagName === 'BUTTON' && trigger.type === 'submit' && trigger.form) {
+                    trigger.form.requestSubmit(trigger);
+                } else {
+                    trigger.click();
+                }
+
+                window.setTimeout(() => {
+                    if (wireConfirm !== null) {
+                        trigger.setAttribute('wire:confirm', wireConfirm);
+                    }
+                    delete trigger.dataset.confirmBypass;
+                }, 0);
+            },
+        });
+    }, true);
 };
 
 const createSyncedClock = (root) => {
@@ -406,6 +537,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     initConfirmForms(confirm);
+    initConfirmActions(confirm);
+
+    window.addEventListener('crud-notify', (event) => {
+        const type = event?.detail?.type === 'error' ? 'error' : 'success';
+        const message = event?.detail?.message || '';
+        const kind = event?.detail?.kind || '';
+        if (!message) return;
+        toast.show(type, message, kind);
+    });
 
     if (popupStatus) {
         toast.show('success', statusLabelMap[popupStatus] || popupStatus);

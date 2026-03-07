@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -15,9 +16,12 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     public const ROLE_ADMIN = 'admin';
-    public const ROLE_AUTHOR = 'author';
     public const ROLE_OPERATOR = 'operator';
-    public const ROLE_PESERTA = 'peserta';
+    public const ROLE_TEACHER = 'teacher';
+    public const ROLE_STUDENT = 'student';
+    // Backward compatibility for existing code paths.
+    public const ROLE_AUTHOR = self::ROLE_TEACHER;
+    public const ROLE_PESERTA = self::ROLE_STUDENT;
 
     /**
      * The attributes that are mass assignable.
@@ -29,6 +33,13 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'nis',
+        'nisn',
+        'nik',
+        'birth_place',
+        'birth_date',
+        'guardian_name',
+        'class_id',
         'profile_photo_path',
     ];
 
@@ -52,6 +63,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'birth_date' => 'date',
         ];
     }
 
@@ -77,6 +89,21 @@ class User extends Authenticatable
         return $this->hasMany(Exam::class, 'created_by');
     }
 
+    public function schoolClass(): BelongsTo
+    {
+        return $this->belongsTo(SchoolClass::class, 'class_id');
+    }
+
+    public function homeroomOfClasses(): HasMany
+    {
+        return $this->hasMany(HomeroomTeacher::class, 'teacher_id');
+    }
+
+    public function teacherSubjects(): HasMany
+    {
+        return $this->hasMany(TeacherSubject::class, 'teacher_id');
+    }
+
     public function examAttempts(): HasMany
     {
         return $this->hasMany(ExamAttempt::class);
@@ -87,3 +114,4 @@ class User extends Authenticatable
         return $this->hasMany(ExamAttemptAudit::class, 'actor_user_id');
     }
 }
+

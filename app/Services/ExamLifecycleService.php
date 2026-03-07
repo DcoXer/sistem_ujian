@@ -39,7 +39,7 @@ class ExamLifecycleService
     {
         return DB::transaction(function () use ($exam) {
             $exam = Exam::query()
-                ->with(['questions.options', 'author'])
+                ->with(['questions.options', 'teacher'])
                 ->lockForUpdate()
                 ->findOrFail($exam->id);
 

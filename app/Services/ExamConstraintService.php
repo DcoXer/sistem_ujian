@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Exam;
+use App\Models\TeacherSubject;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 
@@ -20,13 +21,26 @@ class ExamConstraintService
             throw new AuthorizationException('Exam belum bisa dipublish. Tunggu sampai rentang authoring selesai.');
         }
 
-        if ((int) $exam->author_id <= 0) {
-            throw new AuthorizationException('Exam harus memiliki author yang ditetapkan sebelum publish.');
+        $teacherId = (int) ($exam->teacher_id ?? $exam->author_id ?? 0);
+        if ($teacherId <= 0) {
+            throw new AuthorizationException('Exam harus memiliki teacher yang ditetapkan sebelum publish.');
         }
 
-        $author = $exam->author()->first();
-        if (! $author || $author->role !== User::ROLE_AUTHOR) {
-            throw new AuthorizationException('Author exam tidak valid.');
+        $teacher = User::query()->find($teacherId);
+        if (! $teacher || $teacher->role !== User::ROLE_TEACHER) {
+            throw new AuthorizationException('Teacher exam tidak valid.');
+        }
+
+        if ($exam->subject_id && $exam->class_id) {
+            $hasAssignment = TeacherSubject::query()
+                ->where('teacher_id', $teacherId)
+                ->where('subject_id', $exam->subject_id)
+                ->where('class_id', $exam->class_id)
+                ->exists();
+
+            if (! $hasAssignment) {
+                throw new AuthorizationException('Teacher belum ter-assign ke mapel dan kelas ujian ini.');
+            }
         }
 
         $questions = $exam->questions()->with('options')->orderBy('order')->get();

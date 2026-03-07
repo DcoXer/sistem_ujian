@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
+use App\Models\SchoolClass;
+use App\Models\SchoolYear;
+use App\Models\Subject;
 use App\Models\User;
 use App\Services\ExamContentCacheService;
 use App\Services\ExamLifecycleService;
@@ -27,20 +30,7 @@ class AdminExamController extends Controller
 
     public function index(): View
     {
-        $this->examLifecycleService->closeExpiredExams();
-
-        $exams = Exam::query()
-            ->with(['author:id,name,email'])
-            ->withCount(['questions', 'attempts'])
-            ->latest()
-            ->paginate(10);
-
-        $authors = User::query()
-            ->where('role', User::ROLE_AUTHOR)
-            ->orderBy('name')
-            ->get(['id', 'name', 'email']);
-
-        return view('admin.exams.index', compact('exams', 'authors'));
+        return view('admin.exams.index');
     }
 
     public function create(): RedirectResponse
@@ -59,20 +49,45 @@ class AdminExamController extends Controller
             'authoring_start_at' => ['required', 'date'],
             'authoring_end_at' => ['required', 'date', 'after_or_equal:authoring_start_at', 'before_or_equal:start_at'],
             'duration_minutes' => ['required', 'integer', 'min:1'],
-            'author_id' => [
-                'required',
-                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', User::ROLE_AUTHOR)),
+            'teacher_id' => [
+                'nullable',
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', User::ROLE_TEACHER)),
             ],
+            'author_id' => [
+                'nullable',
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', User::ROLE_TEACHER)),
+            ],
+            'subject_id' => ['nullable', 'integer', Rule::exists('subjects', 'id')],
+            'class_id' => ['nullable', 'integer', Rule::exists('school_classes', 'id')],
+            'target_grade_level' => ['nullable', 'integer', 'min:1', 'max:12'],
+            'school_year_id' => ['nullable', 'integer', Rule::exists('school_years', 'id')],
         ]);
+
+        $data['teacher_id'] = (int) ($data['teacher_id'] ?? $data['author_id'] ?? 0) ?: null;
+        unset($data['author_id']);
+        $data['class_id'] = null;
+
+        if (empty($data['school_year_id'])) {
+            $data['school_year_id'] = SchoolYear::query()->where('is_active', true)->value('id');
+        }
+
+        if (! $data['teacher_id']) {
+            return back()->withErrors(['teacher_id' => 'Teacher wajib dipilih.'])->withInput();
+        }
 
         $exam = Exam::create($data + [
             'created_by' => $request->user()->id,
             'status' => Exam::STATUS_DRAFT,
+            'author_id' => $data['teacher_id'],
         ]);
 
         $this->securityAuditService->log($request, 'exam_created', $exam, [
             'title' => $exam->title,
-            'author_id' => $exam->author_id,
+            'teacher_id' => $exam->teacher_id,
+            'subject_id' => $exam->subject_id,
+            'class_id' => $exam->class_id,
+            'target_grade_level' => $exam->target_grade_level,
+            'school_year_id' => $exam->school_year_id,
             'start_at' => optional($exam->start_at)?->toIso8601String(),
             'end_at' => optional($exam->end_at)?->toIso8601String(),
         ]);
@@ -82,7 +97,14 @@ class AdminExamController extends Controller
 
     public function show(Exam $exam): View
     {
-        $exam->load(['author:id,name,email', 'questions.options', 'attempts.user']);
+        $exam->load([
+            'teacher:id,name,email',
+            'subject:id,code,name',
+            'schoolClass:id,name',
+            'schoolYear:id,name',
+            'questions.options',
+            'attempts.user',
+        ]);
         $questionsCount = $exam->questions->count();
 
         $lifecycle = [

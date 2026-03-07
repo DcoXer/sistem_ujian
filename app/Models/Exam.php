@@ -22,6 +22,12 @@ class Exam extends Model
         'status',
         'created_by',
         'author_id',
+        'teacher_id',
+        'subject_id',
+        'class_id',
+        'target_grade_level',
+        'school_class_id',
+        'school_year_id',
     ];
 
     protected function casts(): array
@@ -31,6 +37,7 @@ class Exam extends Model
             'end_at' => 'datetime',
             'authoring_start_at' => 'datetime',
             'authoring_end_at' => 'datetime',
+            'target_grade_level' => 'integer',
         ];
     }
 
@@ -67,6 +74,26 @@ class Exam extends Model
         return $this->belongsTo(User::class, 'author_id');
     }
 
+    public function teacher(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'teacher_id');
+    }
+
+    public function subject(): BelongsTo
+    {
+        return $this->belongsTo(Subject::class);
+    }
+
+    public function schoolClass(): BelongsTo
+    {
+        return $this->belongsTo(SchoolClass::class, 'class_id');
+    }
+
+    public function schoolYear(): BelongsTo
+    {
+        return $this->belongsTo(SchoolYear::class, 'school_year_id');
+    }
+
     public function questions(): HasMany
     {
         return $this->hasMany(ExamQuestion::class)->orderBy('order');
@@ -85,5 +112,30 @@ class Exam extends Model
             self::STATUS_FINISHED => false,
             default => false,
         };
+    }
+
+    public function isEligibleForPeserta(User $user): bool
+    {
+        if ($user->role !== User::ROLE_STUDENT) {
+            return false;
+        }
+
+        $user->loadMissing('schoolClass');
+
+        if ($this->class_id !== null && (int) $this->class_id !== (int) ($user->class_id ?? 0)) {
+            return false;
+        }
+
+        $participantGradeLevel = (int) ($user->schoolClass?->grade_level ?? 0);
+        if ($this->target_grade_level !== null && (int) $this->target_grade_level !== $participantGradeLevel) {
+            return false;
+        }
+
+        $participantSchoolYearId = (int) ($user->schoolClass?->school_year_id ?? 0);
+        if ($this->school_year_id !== null && (int) $this->school_year_id !== $participantSchoolYearId) {
+            return false;
+        }
+
+        return true;
     }
 }

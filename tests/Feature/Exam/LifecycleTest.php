@@ -21,7 +21,7 @@ class LifecycleTest extends TestCase
         Carbon::setTestNow(now());
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $author = User::factory()->create(['role' => User::ROLE_AUTHOR]);
+        $author = User::factory()->create(['role' => User::ROLE_TEACHER]);
         $exam = Exam::create([
             'title' => 'Lifecycle Exam',
             'start_at' => now()->subMinute(),
@@ -110,7 +110,7 @@ class LifecycleTest extends TestCase
         Carbon::setTestNow(now());
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $author = User::factory()->create(['role' => User::ROLE_AUTHOR]);
+        $author = User::factory()->create(['role' => User::ROLE_TEACHER]);
         $exam = Exam::create([
             'title' => 'Authoring Window Open Exam',
             'start_at' => now()->addHours(2),
@@ -148,3 +148,4 @@ class LifecycleTest extends TestCase
         $lifecycle->publishDraftExam($exam);
     }
 }
+

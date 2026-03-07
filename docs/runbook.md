@@ -136,6 +136,20 @@ Jangan pernah update soal via DB manual karena bypass invalidation.
   - monitor slow query log saat jam ujian.
   - pastikan index relasi exam/attempt/answer tetap sehat.
 
+### 5.1 Baseline wajib untuk 1000 peserta serentak
+- Jangan pakai storage berbasis database untuk session/cache/queue saat hari ujian.
+- Gunakan:
+  - `SESSION_DRIVER=redis`
+  - `CACHE_STORE=redis`
+  - `QUEUE_CONNECTION=redis`
+  - `EXAM_CONTENT_CACHE_STORE=redis`
+- Set polling timer peserta ke interval yang lebih longgar:
+  - `EXAM_TIMER_POLL_INTERVAL_SECONDS=30`
+- Setelah ubah env, wajib jalankan:
+  - `php artisan optimize:clear`
+  - `php artisan config:cache`
+  - restart PHP-FPM / worker queue.
+
 ### 6. Load test minimum sebelum event besar
 - Simulasikan herd:
   - 500-1000 virtual users hit halaman mulai ujian secara serentak.

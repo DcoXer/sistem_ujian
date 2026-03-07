@@ -12,6 +12,7 @@
         <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800&display=swap" rel="stylesheet" />
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @livewireStyles
         <style>[x-cloak]{display:none !important;}</style>
     </head>
     <body class="font-['Plus_Jakarta_Sans'] antialiased">
@@ -23,9 +24,7 @@
             $examUiStates = \App\Support\ExamUiState::all();
             $popupStatus = session('status');
             $popupError = session('error')
-                ?? $errors->first('delete')
-                ?? $errors->first('publish')
-                ?? $errors->first('role');
+                ?? ($errors->any() ? $errors->all()[0] : null);
             $userInitial = strtoupper(substr(trim((string) ($user?->name ?? 'U')), 0, 1));
         @endphp
 
@@ -107,5 +106,6 @@
                 </div>
             </div>
         </div>
+        @livewireScripts
     </body>
 </html>

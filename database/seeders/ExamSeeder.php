@@ -14,10 +14,10 @@ class ExamSeeder extends Seeder
     public function run(): void
     {
         $admin = User::where('email', 'admin@example.com')->first();
-        $author = User::where('email', 'author@example.com')->first();
-        $peserta = User::where('email', 'peserta@example.com')->first();
+        $teacher = User::where('email', 'teacher@example.com')->first();
+        $student = User::where('email', 'student@example.com')->first();
 
-        if (! $admin || ! $author || ! $peserta) {
+        if (! $admin || ! $teacher || ! $student) {
             return;
         }
 
@@ -29,7 +29,7 @@ class ExamSeeder extends Seeder
                 'duration_minutes' => 45,
                 'status' => Exam::STATUS_RUNNING,
                 'created_by' => $admin->id,
-                'author_id' => $author->id,
+                'teacher_id' => $teacher->id,
             ]
         );
 
@@ -41,7 +41,7 @@ class ExamSeeder extends Seeder
                 'duration_minutes' => 60,
                 'status' => Exam::STATUS_DRAFT,
                 'created_by' => $admin->id,
-                'author_id' => $author->id,
+                'teacher_id' => $teacher->id,
             ]
         );
 
@@ -89,7 +89,7 @@ class ExamSeeder extends Seeder
         }
 
         ExamAttempt::updateOrCreate(
-            ['exam_id' => $publishedExam->id, 'user_id' => $peserta->id],
+            ['exam_id' => $publishedExam->id, 'user_id' => $student->id],
             [
                 'status' => ExamAttempt::STATUS_ACTIVE,
                 'started_at' => now()->subMinutes(10),
