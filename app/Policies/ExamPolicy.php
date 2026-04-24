@@ -30,14 +30,18 @@ class ExamPolicy
             return false;
         }
 
-        if (! $exam->subject_id || ! $exam->class_id) {
+        if (! $exam->subject_id) {
             return true;
         }
 
+        // Check class-specific assignment or grade-level assignment
         return TeacherSubject::query()
             ->where('teacher_id', $user->id)
             ->where('subject_id', $exam->subject_id)
-            ->where('class_id', $exam->class_id)
+            ->where(function ($q) use ($exam) {
+                $q->where('class_id', $exam->class_id)
+                    ->orWhere('grade_level', $exam->target_grade_level);
+            })
             ->exists();
     }
 
@@ -53,6 +57,14 @@ class ExamPolicy
         return $user->role === User::ROLE_TEACHER
             && $exam->status === Exam::STATUS_FINISHED
             && (int) ($exam->teacher_id ?? $exam->author_id ?? 0) === (int) $user->id;
+    }
+
+    /**
+     * Admin can edit exam metadata (title, dates, type) while it's still draft.
+     */
+    public function updateMeta(User $user, Exam $exam): bool
+    {
+        return $user->role === User::ROLE_ADMIN && $exam->status === Exam::STATUS_DRAFT;
     }
 
     public function delete(User $user, Exam $exam): bool

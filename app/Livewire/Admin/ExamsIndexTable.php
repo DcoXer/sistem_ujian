@@ -4,8 +4,8 @@ namespace App\Livewire\Admin;
 
 use App\Livewire\Concerns\WithCrudNotifications;
 use App\Models\Exam;
-use App\Models\SchoolClass;
 use App\Models\SchoolYear;
+use App\Models\Semester;
 use App\Models\Subject;
 use App\Models\User;
 use App\Services\ExamLifecycleService;
@@ -21,26 +21,78 @@ class ExamsIndexTable extends Component
     use WithPagination;
 
     public string $search = '';
+
+    public string $filterSemesterId = '';
+
+    public string $filterExamType = '';
+
+    // Single exam create modal
     public bool $showCreateModal = false;
 
     public string $title = '';
+
     public string $start_at = '';
+
     public string $end_at = '';
+
     public string $authoring_start_at = '';
+
     public string $authoring_end_at = '';
+
     public int|string $duration_minutes = 60;
+
     public string $teacher_id = '';
+
     public string $subject_id = '';
+
     public string $target_grade_level = '';
+
     public string $school_year_id = '';
+
+    public string $semester_id = '';
+
+    public string $exam_type = '';
+
+    // Bulk create modal
+    public bool $showBulkCreateModal = false;
+
+    public string $bulk_semester_id = '';
+
+    public string $bulk_exam_type = Exam::TYPE_UTS;
+
+    public string $bulk_grade_level = '';
+
+    public string $bulk_authoring_start_at = '';
+
+    public string $bulk_authoring_end_at = '';
+
+    public string $bulk_start_at = '';
+
+    public string $bulk_end_at = '';
+
+    public int|string $bulk_duration_minutes = 90;
 
     public function mount(): void
     {
         $activeSchoolYearId = (string) (SchoolYear::query()->where('is_active', true)->value('id') ?? '');
         $this->school_year_id = $activeSchoolYearId;
+
+        $activeSemesterId = (string) (Semester::query()->where('is_active', true)->value('id') ?? '');
+        $this->semester_id = $activeSemesterId;
+        $this->bulk_semester_id = $activeSemesterId;
     }
 
     public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterSemesterId(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterExamType(): void
     {
         $this->resetPage();
     }
@@ -56,10 +108,29 @@ class ExamsIndexTable extends Component
         $this->resetValidation();
         $this->reset([
             'title', 'start_at', 'end_at', 'authoring_start_at', 'authoring_end_at', 'duration_minutes',
-            'teacher_id', 'subject_id', 'target_grade_level',
+            'teacher_id', 'subject_id', 'target_grade_level', 'exam_type',
         ]);
         $this->duration_minutes = 60;
         $this->school_year_id = (string) (SchoolYear::query()->where('is_active', true)->value('id') ?? '');
+        $this->semester_id = (string) (Semester::query()->where('is_active', true)->value('id') ?? '');
+    }
+
+    public function openBulkCreateModal(): void
+    {
+        $this->showBulkCreateModal = true;
+    }
+
+    public function closeBulkCreateModal(): void
+    {
+        $this->showBulkCreateModal = false;
+        $this->resetValidation();
+        $this->reset([
+            'bulk_grade_level', 'bulk_authoring_start_at', 'bulk_authoring_end_at',
+            'bulk_start_at', 'bulk_end_at',
+        ]);
+        $this->bulk_exam_type = Exam::TYPE_UTS;
+        $this->bulk_duration_minutes = 90;
+        $this->bulk_semester_id = (string) (Semester::query()->where('is_active', true)->value('id') ?? '');
     }
 
     public function createExam(): void
@@ -75,6 +146,8 @@ class ExamsIndexTable extends Component
             'subject_id' => ['nullable', 'integer', Rule::exists('subjects', 'id')],
             'target_grade_level' => ['nullable', 'integer', 'min:1', 'max:12'],
             'school_year_id' => ['nullable', 'integer', Rule::exists('school_years', 'id')],
+            'semester_id' => ['nullable', 'integer', Rule::exists('semesters', 'id')],
+            'exam_type' => ['nullable', Rule::in(Exam::EXAM_TYPES)],
         ]);
 
         if (empty($data['school_year_id'])) {
@@ -113,6 +186,7 @@ class ExamsIndexTable extends Component
         if ($exam->status !== Exam::STATUS_DRAFT) {
             $this->addError('delete', 'Exam hanya bisa dihapus saat status draft.');
             $this->notifyError('Ujian hanya bisa dihapus saat masih draft.');
+
             return;
         }
 
@@ -126,17 +200,12 @@ class ExamsIndexTable extends Component
     {
         $lookupTtl = now()->addMinutes(5);
         $exams = Exam::query()
-            ->with(['teacher:id,name,email', 'subject:id,code,name', 'schoolClass:id,name', 'schoolYear:id,name'])
+            ->with(['teacher:id,name,email', 'subject:id,code,name', 'semester:id,name'])
             ->when($this->search !== '', fn ($q) => $q->where('title', 'like', '%'.$this->search.'%'))
+            ->when($this->filterSemesterId !== '', fn ($q) => $q->where('semester_id', (int) $this->filterSemesterId))
+            ->when($this->filterExamType !== '', fn ($q) => $q->where('exam_type', $this->filterExamType))
             ->latest()
             ->paginate(10);
-
-        $gradeLevels = SchoolClass::query()
-            ->when($this->school_year_id !== '', fn ($q) => $q->where('school_year_id', (int) $this->school_year_id))
-            ->whereNotNull('grade_level')
-            ->distinct()
-            ->orderBy('grade_level')
-            ->pluck('grade_level');
 
         $teachers = Cache::remember('lw:exams:teachers:v1', $lookupTtl, fn () => User::query()
             ->where('role', User::ROLE_TEACHER)
@@ -150,13 +219,23 @@ class ExamsIndexTable extends Component
             ->orderByDesc('is_active')
             ->orderByDesc('start_date')
             ->get(['id', 'name', 'is_active']));
+        $semesters = Cache::remember('lw:exams:semesters:v1', $lookupTtl, fn () => Semester::query()
+            ->with('schoolYear:id,name')
+            ->orderByDesc('is_active')
+            ->orderBy('school_year_id')
+            ->orderBy('semester_number')
+            ->get(['id', 'name', 'school_year_id', 'semester_number', 'is_active']));
+
+        $gradeLevels = collect(range(1, 6));
 
         return view('livewire.admin.exams-index-table', [
             'exams' => $exams,
             'teachers' => $teachers,
             'subjects' => $subjects,
             'schoolYears' => $schoolYears,
+            'semesters' => $semesters,
             'gradeLevels' => $gradeLevels,
+            'examTypes' => Exam::EXAM_TYPES,
         ]);
     }
 }

@@ -2,16 +2,17 @@
 
 namespace App\Livewire\Admin;
 
-use App\Livewire\Concerns\WithCrudNotifications;
 use App\Imports\StudentSyncRowsImport;
+use App\Livewire\Concerns\WithCrudNotifications;
 use App\Models\SchoolClass;
 use App\Models\SchoolYear;
+use App\Models\Semester;
 use App\Models\User;
 use App\Services\ClassStudentSyncService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
@@ -23,26 +24,41 @@ class ClassesIndexTable extends Component
     use WithPagination;
 
     public string $schoolYearName = '';
+
     public string $schoolYearStart = '';
+
     public string $schoolYearEnd = '';
+
     public bool $showSchoolYearModal = false;
 
     public string $className = '';
+
     public string $classGrade = '';
+
     public string $classMajor = '';
+
     public string $classSchoolYearId = '';
+
     public bool $showCreateClassModal = false;
 
     public bool $showEditClassModal = false;
+
     public ?int $editingClassId = null;
+
     public string $editClassName = '';
+
     public string $editClassGrade = '';
+
     public string $editClassMajor = '';
+
     public string $editClassSchoolYearId = '';
 
     public bool $showSyncModal = false;
+
     public ?int $syncClassId = null;
+
     public string $studentsRaw = '';
+
     public ?TemporaryUploadedFile $studentsFile = null;
 
     public function openSchoolYearModal(): void
@@ -80,6 +96,7 @@ class ClassesIndexTable extends Component
         if (SchoolYear::query()->where('name', $data['schoolYearName'])->exists()) {
             $this->addError('schoolYearName', 'Tahun ajaran sudah ada.');
             $this->notifyError('Tahun ajaran ini sudah ada. Coba nama tahun ajaran yang lain.');
+
             return;
         }
 
@@ -103,6 +120,40 @@ class ClassesIndexTable extends Component
         $this->notifySuccess('Tahun ajaran aktif berhasil diubah.');
     }
 
+    public function createSemester(int $schoolYearId, int $semesterNumber, ?string $startDate, ?string $endDate): void
+    {
+        $exists = Semester::query()
+            ->where('school_year_id', $schoolYearId)
+            ->where('semester_number', $semesterNumber)
+            ->exists();
+
+        if ($exists) {
+            $this->notifyError('Semester '.$semesterNumber.' sudah ada di tahun ajaran ini.');
+
+            return;
+        }
+
+        Semester::query()->create([
+            'school_year_id' => $schoolYearId,
+            'semester_number' => $semesterNumber,
+            'name' => 'Semester '.$semesterNumber,
+            'start_date' => $startDate ?: null,
+            'end_date' => $endDate ?: null,
+            'is_active' => false,
+        ]);
+
+        session()->flash('status', 'semester-created');
+        $this->notifySuccess('Semester berhasil ditambahkan.');
+    }
+
+    public function activateSemester(int $semesterId): void
+    {
+        Semester::query()->where('is_active', true)->update(['is_active' => false]);
+        Semester::query()->whereKey($semesterId)->update(['is_active' => true]);
+        session()->flash('status', 'semester-activated');
+        $this->notifySuccess('Semester aktif berhasil diubah.');
+    }
+
     public function createClass(): void
     {
         $data = $this->validateWithFriendlyMessage([
@@ -120,6 +171,7 @@ class ClassesIndexTable extends Component
         if ($exists) {
             $this->addError('className', 'Rombel dengan nama yang sama pada tahun ajaran ini sudah ada.');
             $this->notifyError('Rombel dengan nama ini sudah ada di tahun ajaran yang dipilih.');
+
             return;
         }
 
@@ -174,6 +226,7 @@ class ClassesIndexTable extends Component
         if ($exists) {
             $this->addError('editClassName', 'Rombel dengan nama yang sama pada tahun ajaran ini sudah ada.');
             $this->notifyError('Nama rombel ini sudah dipakai di tahun ajaran yang sama.');
+
             return;
         }
 
@@ -217,6 +270,7 @@ class ClassesIndexTable extends Component
         if (trim($this->studentsRaw) === '' && $this->studentsFile === null) {
             $this->addError('studentsRaw', 'Isi data siswa atau upload file terlebih dahulu.');
             $this->notifyError('Masukkan data siswa dulu atau upload file import.');
+
             return;
         }
 
@@ -226,6 +280,7 @@ class ClassesIndexTable extends Component
             if ($rawPayload === '') {
                 $this->addError('studentsFile', 'File tidak berisi baris data siswa yang valid.');
                 $this->notifyError('File belum bisa diproses. Pastikan format file sesuai template.');
+
                 return;
             }
         }
@@ -237,6 +292,7 @@ class ClassesIndexTable extends Component
         if (! empty($result['errors'])) {
             $this->addError('studentsRaw', implode(' ', array_slice((array) $result['errors'], 0, 3)));
             $this->notifyError('Import selesai sebagian. Ada beberapa baris yang perlu diperbaiki.');
+
             return;
         }
 
@@ -269,7 +325,7 @@ class ClassesIndexTable extends Component
             return implode("\n", $normalized);
         }
 
-        $sheets = Excel::toArray(new StudentSyncRowsImport(), $file);
+        $sheets = Excel::toArray(new StudentSyncRowsImport, $file);
         $lines = [];
         foreach ($sheets as $sheet) {
             foreach ($sheet as $rowIndex => $row) {
@@ -317,6 +373,7 @@ class ClassesIndexTable extends Component
                 ->orderBy('name')
                 ->get(['id', 'name', 'school_year_id'])),
             'schoolYears' => Cache::remember('lw:classes:school-years:v1', $lookupTtl, fn () => SchoolYear::query()
+                ->with(['semesters' => fn ($q) => $q->orderBy('semester_number')])
                 ->orderByDesc('is_active')
                 ->orderByDesc('start_date')
                 ->get(['id', 'name', 'start_date', 'end_date', 'is_active'])),

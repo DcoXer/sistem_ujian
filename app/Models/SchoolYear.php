@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class SchoolYear extends Model
 {
@@ -31,5 +32,15 @@ class SchoolYear extends Model
     public function exams(): HasMany
     {
         return $this->hasMany(Exam::class, 'school_year_id');
+    }
+
+    public function semesters(): HasMany
+    {
+        return $this->hasMany(Semester::class)->orderBy('semester_number');
+    }
+
+    public function activeSemester(): HasOne
+    {
+        return $this->hasOne(Semester::class)->where('is_active', true);
     }
 }

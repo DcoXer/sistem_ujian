@@ -30,6 +30,41 @@
                                 @endif
                             </td>
                         </tr>
+                        {{-- Semester rows --}}
+                        @foreach ($year->semesters as $semester)
+                            <tr class="border-t border-slate-100 bg-slate-50/50">
+                                <td class="py-1.5 pl-8 pr-3 text-xs text-slate-600">
+                                    <span class="mr-1 text-slate-400">↳</span>{{ $semester->name }}
+                                </td>
+                                <td class="px-3 py-1.5 text-xs text-slate-500">{{ $semester->start_date?->format('d M Y') ?? '-' }}</td>
+                                <td class="px-3 py-1.5 text-xs text-slate-500">{{ $semester->end_date?->format('d M Y') ?? '-' }}</td>
+                                <td class="px-3 py-1.5">
+                                    <span class="rounded px-2 py-0.5 text-[10px] uppercase {{ $semester->is_active ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500' }}">
+                                        {{ $semester->is_active ? 'aktif' : '-' }}
+                                    </span>
+                                </td>
+                                <td class="px-3 py-1.5 text-right">
+                                    @if (! $semester->is_active)
+                                        <button wire:click="activateSemester({{ $semester->id }})" data-confirm-message="Set semester ini sebagai aktif?" class="rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 hover:bg-indigo-100">Set Aktif</button>
+                                    @else
+                                        <span class="text-[10px] text-indigo-500">Semester berjalan</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                        {{-- Add semester buttons --}}
+                        <tr class="border-t border-dashed border-slate-100">
+                            <td colspan="5" class="py-1.5 pl-8 pr-3">
+                                <div class="flex flex-wrap gap-2">
+                                    @if (! $year->semesters->contains('semester_number', 1))
+                                        <button wire:click="createSemester({{ $year->id }}, 1, null, null)" class="rounded border border-slate-300 px-2 py-0.5 text-[10px] font-medium text-slate-600 hover:bg-slate-50">+ Semester 1</button>
+                                    @endif
+                                    @if (! $year->semesters->contains('semester_number', 2))
+                                        <button wire:click="createSemester({{ $year->id }}, 2, null, null)" class="rounded border border-slate-300 px-2 py-0.5 text-[10px] font-medium text-slate-600 hover:bg-slate-50">+ Semester 2</button>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
                     @endforeach
                 </tbody>
             </table>

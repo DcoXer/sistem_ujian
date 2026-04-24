@@ -5,9 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
-use App\Models\SchoolClass;
 use App\Models\SchoolYear;
-use App\Models\Subject;
 use App\Models\User;
 use App\Services\ExamContentCacheService;
 use App\Services\ExamLifecycleService;
@@ -25,8 +23,7 @@ class AdminExamController extends Controller
         protected ExamLifecycleService $examLifecycleService,
         protected ExamContentCacheService $examContentCacheService,
         protected SecurityAuditService $securityAuditService
-    ) {
-    }
+    ) {}
 
     public function index(): View
     {
@@ -175,6 +172,69 @@ class AdminExamController extends Controller
         ]);
 
         return back()->with('status', 'exam-published');
+    }
+
+    public function update(Request $request, Exam $exam): RedirectResponse
+    {
+        $this->authorize('update-meta', $exam);
+
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'start_at' => ['required', 'date'],
+            'end_at' => ['required', 'date', 'after:start_at'],
+            'authoring_start_at' => ['required', 'date'],
+            'authoring_end_at' => ['required', 'date', 'after_or_equal:authoring_start_at', 'before_or_equal:start_at'],
+            'duration_minutes' => ['required', 'integer', 'min:1'],
+            'semester_id' => ['nullable', 'integer', Rule::exists('semesters', 'id')],
+            'exam_type' => ['nullable', Rule::in(Exam::EXAM_TYPES)],
+        ]);
+
+        $exam->update($data);
+
+        $this->securityAuditService->log($request, 'exam_updated', $exam, [
+            'title' => $exam->title,
+        ]);
+
+        return back()->with('status', 'exam-updated');
+    }
+
+    public function bulkCreate(Request $request): RedirectResponse
+    {
+        $this->authorize('create', Exam::class);
+
+        $data = $request->validate([
+            'semester_id' => ['required', 'integer', Rule::exists('semesters', 'id')],
+            'exam_type' => ['required', Rule::in(Exam::EXAM_TYPES)],
+            'target_grade_level' => ['required', 'integer', 'min:1', 'max:12'],
+            'authoring_start_at' => ['required', 'date'],
+            'authoring_end_at' => ['required', 'date', 'after_or_equal:authoring_start_at'],
+            'start_at' => ['required', 'date', 'after:authoring_end_at'],
+            'end_at' => ['required', 'date', 'after:start_at'],
+            'duration_minutes' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $gradeLevel = (int) $data['target_grade_level'];
+        $hasAssignments = \App\Models\TeacherSubject::query()
+            ->where('grade_level', $gradeLevel)
+            ->whereNull('class_id')
+            ->exists();
+
+        if (! $hasAssignments) {
+            return back()->withErrors([
+                'bulk_create' => 'Tidak ada assignment guru ditemukan untuk tingkat kelas '.$gradeLevel.'. Pastikan assignment guru sudah diset per tingkat kelas.',
+            ])->withInput();
+        }
+
+        $result = $this->examLifecycleService->bulkCreateFromAssignments($data, $request, $this->securityAuditService);
+        $created = $result['created'];
+        $skipped = $result['skipped'];
+
+        $message = "Berhasil membuat {$created} ujian.";
+        if ($skipped > 0) {
+            $message .= " {$skipped} ujian dilewati karena sudah ada.";
+        }
+
+        return redirect()->route('admin.exams.index')->with('status', $message);
     }
 
     public function destroy(Request $request, Exam $exam): RedirectResponse

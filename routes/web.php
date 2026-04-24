@@ -8,11 +8,11 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Operator\OperatorClassStudentController;
 use App\Http\Controllers\Operator\OperatorExamMonitorController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\StudentExamController;
 use App\Http\Controllers\Teacher\TeacherExamController;
 use App\Http\Controllers\Teacher\TeacherHomeroomResultController;
 use App\Http\Controllers\Teacher\TeacherHomeroomStudentController;
-use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -44,7 +44,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::get('/exams', [AdminExamController::class, 'index'])->name('exams.index');
         Route::get('/exams/create', [AdminExamController::class, 'create'])->name('exams.create');
         Route::post('/exams', [AdminExamController::class, 'store'])->name('exams.store');
+        Route::post('/exams/bulk-create', [AdminExamController::class, 'bulkCreate'])->name('exams.bulk-create.store');
         Route::get('/exams/{exam}', [AdminExamController::class, 'show'])->name('exams.show');
+        Route::put('/exams/{exam}', [AdminExamController::class, 'update'])->name('exams.update');
         Route::delete('/exams/{exam}', [AdminExamController::class, 'destroy'])->name('exams.destroy');
         Route::post('/exams/{exam}/publish', [AdminExamController::class, 'publish'])->name('exams.publish');
     });
@@ -67,6 +69,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::post('/classes', [AdminClassController::class, 'store'])->name('classes.store');
         Route::post('/school-years', [AdminClassController::class, 'storeSchoolYear'])->name('school-years.store');
         Route::post('/school-years/{schoolYear}/activate', [AdminClassController::class, 'activateSchoolYear'])->name('school-years.activate');
+        Route::post('/school-years/{schoolYear}/semesters', [AdminClassController::class, 'storeSemester'])->name('school-years.semesters.store');
+        Route::post('/semesters/{semester}/activate', [AdminClassController::class, 'activateSemester'])->name('semesters.activate');
         Route::put('/classes/{class}', [AdminClassController::class, 'update'])->name('classes.update');
         Route::post('/classes/{class}/students/sync', [AdminClassController::class, 'syncStudents'])->name('classes.students.sync');
         Route::get('/classes/students/template', [AdminClassController::class, 'downloadStudentImportTemplate'])->name('classes.students.template');

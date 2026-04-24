@@ -1,37 +1,68 @@
 <div class="space-y-6">
     <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h3 class="text-base font-semibold text-slate-900">Hubungkan Guru ke Mapel & Kelas</h3>
-        <form wire:submit="createTeacherSubject" class="mt-4 grid gap-4 md:grid-cols-3">
+        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h3 class="text-base font-semibold text-slate-900">Hubungkan Guru ke Mapel</h3>
+                <p class="mt-0.5 text-xs text-slate-500">Pilih jenis assignment: per tingkat kelas (untuk UTS/UAS) atau per rombel spesifik.</p>
+            </div>
+        </div>
+
+        {{-- Assignment type toggle --}}
+        <div class="mt-4 flex gap-2">
+            <button
+                wire:click="$set('assignment_type', 'grade')"
+                class="rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $assignment_type === 'grade' ? 'bg-indigo-600 text-white' : 'border border-slate-300 text-slate-700 hover:bg-slate-50' }}"
+            >Per Tingkat Kelas</button>
+            <button
+                wire:click="$set('assignment_type', 'class')"
+                class="rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $assignment_type === 'class' ? 'bg-indigo-600 text-white' : 'border border-slate-300 text-slate-700 hover:bg-slate-50' }}"
+            >Per Rombel Spesifik</button>
+        </div>
+
+        <form wire:submit="createTeacherSubject" class="mt-3 grid gap-4 md:grid-cols-4">
             <select wire:model="teacher_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
                 <option value="">Pilih Guru</option>
                 @foreach ($teachers as $teacher)
-                    <option value="{{ $teacher->id }}">{{ $teacher->name }} ({{ $teacher->email }})</option>
+                    <option value="{{ $teacher->id }}">{{ $teacher->name }}</option>
                 @endforeach
             </select>
+
             <select wire:model="subject_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
                 <option value="">Pilih Mapel</option>
                 @foreach ($subjects as $subject)
                     <option value="{{ $subject->id }}">{{ $subject->code }} - {{ $subject->name }}</option>
                 @endforeach
             </select>
-            <select wire:model="class_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
-                <option value="">Pilih Kelas</option>
-                @foreach ($classes as $class)
-                    <option value="{{ $class->id }}">{{ $class->name }}{{ $class->schoolYear?->name ? ' - '.$class->schoolYear->name : '' }}</option>
-                @endforeach
-            </select>
-            <div class="md:col-span-3">
+
+            @if ($assignment_type === 'grade')
+                <select wire:model="grade_level" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+                    <option value="">Pilih Tingkat</option>
+                    @foreach (range(1, 6) as $g)
+                        <option value="{{ $g }}">Kelas {{ $g }}</option>
+                    @endforeach
+                </select>
+            @else
+                <select wire:model="class_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+                    <option value="">Pilih Rombel</option>
+                    @foreach ($classes as $class)
+                        <option value="{{ $class->id }}">{{ $class->name }}{{ $class->grade_level ? ' (Kelas '.$class->grade_level.')' : '' }}</option>
+                    @endforeach
+                </select>
+            @endif
+
+            <div>
                 <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Simpan</button>
             </div>
         </form>
         @error('teacher_id') <p class="mt-2 text-xs text-rose-600">{{ $message }}</p> @enderror
         @error('subject_id') <p class="mt-2 text-xs text-rose-600">{{ $message }}</p> @enderror
+        @error('grade_level') <p class="mt-2 text-xs text-rose-600">{{ $message }}</p> @enderror
         @error('class_id') <p class="mt-2 text-xs text-rose-600">{{ $message }}</p> @enderror
     </section>
 
     <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <h3 class="text-base font-semibold text-slate-900">Input Wali Kelas</h3>
-        <form wire:submit="createHomeroom" class="mt-4 grid gap-4 md:grid-cols-2">
+        <form wire:submit="createHomeroom" class="mt-4 grid gap-4 md:grid-cols-3">
             <select wire:model="homeroom_teacher_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
                 <option value="">Pilih Guru</option>
                 @foreach ($teachers as $teacher)
@@ -39,12 +70,12 @@
                 @endforeach
             </select>
             <select wire:model="homeroom_class_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
-                <option value="">Pilih Kelas</option>
+                <option value="">Pilih Rombel</option>
                 @foreach ($classes as $class)
-                    <option value="{{ $class->id }}">{{ $class->name }}</option>
+                    <option value="{{ $class->id }}">{{ $class->name }}{{ $class->grade_level ? ' (Kelas '.$class->grade_level.')' : '' }}</option>
                 @endforeach
             </select>
-            <div class="md:col-span-2">
+            <div>
                 <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Simpan Wali Kelas</button>
             </div>
         </form>
@@ -61,7 +92,7 @@
                         <tr>
                             <th class="px-3 py-2 font-medium">Guru</th>
                             <th class="px-3 py-2 font-medium">Mapel</th>
-                            <th class="px-3 py-2 font-medium">Kelas</th>
+                            <th class="px-3 py-2 font-medium">Scope</th>
                             <th class="px-3 py-2 font-medium">Aksi</th>
                         </tr>
                     </thead>
@@ -70,7 +101,13 @@
                             <tr class="border-t border-slate-100">
                                 <td class="px-3 py-2 text-slate-900">{{ $item->teacher?->name }}</td>
                                 <td class="px-3 py-2 text-slate-700">{{ $item->subject?->name }}</td>
-                                <td class="px-3 py-2 text-slate-700">{{ $item->schoolClass?->name }}</td>
+                                <td class="px-3 py-2 text-slate-700">
+                                    @if ($item->isGradeLevelAssignment())
+                                        <span class="rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">Kelas {{ $item->grade_level }} (semua rombel)</span>
+                                    @else
+                                        <span class="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">{{ $item->schoolClass?->name }}</span>
+                                    @endif
+                                </td>
                                 <td class="px-3 py-2">
                                     <button wire:click="deleteTeacherSubject({{ $item->id }})" data-confirm-message="Hapus assignment ini?" class="rounded border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Hapus</button>
                                 </td>
@@ -81,9 +118,7 @@
                     </tbody>
                 </table>
             </div>
-            <div class="mt-3">
-                {{ $teacherSubjects->links() }}
-            </div>
+            <div class="mt-3">{{ $teacherSubjects->links() }}</div>
         </article>
 
         <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -112,9 +147,7 @@
                     </tbody>
                 </table>
             </div>
-            <div class="mt-3">
-                {{ $homerooms->links() }}
-            </div>
+            <div class="mt-3">{{ $homerooms->links() }}</div>
         </article>
     </section>
 </div>

@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\HomeroomTeacher;
-use App\Models\SchoolClass;
-use App\Models\Subject;
 use App\Models\TeacherSubject;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -22,24 +20,51 @@ class AdminAssignmentController extends Controller
 
     public function storeTeacherSubject(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'teacher_id' => [
-                'required',
-                'integer',
-                Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', User::ROLE_TEACHER)),
-            ],
-            'subject_id' => ['required', 'integer', Rule::exists('subjects', 'id')],
-            'class_id' => ['required', 'integer', Rule::exists('school_classes', 'id')],
-        ]);
+        $assignmentType = $request->input('assignment_type', 'class');
 
-        $exists = TeacherSubject::query()
-            ->where('teacher_id', $data['teacher_id'])
-            ->where('subject_id', $data['subject_id'])
-            ->where('class_id', $data['class_id'])
-            ->exists();
+        if ($assignmentType === 'grade') {
+            $data = $request->validate([
+                'teacher_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', User::ROLE_TEACHER)),
+                ],
+                'subject_id' => ['required', 'integer', Rule::exists('subjects', 'id')],
+                'grade_level' => ['required', 'integer', 'min:1', 'max:12'],
+            ]);
+            $data['class_id'] = null;
 
-        if ($exists) {
-            return back()->withErrors(['teacher_subject' => 'Assignment mapel-guru-kelas sudah ada.'])->withInput();
+            $exists = TeacherSubject::query()
+                ->where('teacher_id', $data['teacher_id'])
+                ->where('subject_id', $data['subject_id'])
+                ->where('grade_level', $data['grade_level'])
+                ->whereNull('class_id')
+                ->exists();
+
+            if ($exists) {
+                return back()->withErrors(['teacher_subject' => 'Assignment guru-mapel-tingkat sudah ada.'])->withInput();
+            }
+        } else {
+            $data = $request->validate([
+                'teacher_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', User::ROLE_TEACHER)),
+                ],
+                'subject_id' => ['required', 'integer', Rule::exists('subjects', 'id')],
+                'class_id' => ['required', 'integer', Rule::exists('school_classes', 'id')],
+            ]);
+            $data['grade_level'] = null;
+
+            $exists = TeacherSubject::query()
+                ->where('teacher_id', $data['teacher_id'])
+                ->where('subject_id', $data['subject_id'])
+                ->where('class_id', $data['class_id'])
+                ->exists();
+
+            if ($exists) {
+                return back()->withErrors(['teacher_subject' => 'Assignment mapel-guru-kelas sudah ada.'])->withInput();
+            }
         }
 
         TeacherSubject::query()->create($data);

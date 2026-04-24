@@ -18,11 +18,19 @@ class AssignmentsIndexTable extends Component
     use WithCrudNotifications;
     use WithPagination;
 
+    // Teacher-subject assignment fields
+    public string $assignment_type = 'grade'; // 'grade' or 'class'
+
     public string $teacher_id = '';
+
     public string $subject_id = '';
+
     public string $class_id = '';
 
+    public string $grade_level = '';
+
     public string $homeroom_teacher_id = '';
+
     public string $homeroom_class_id = '';
 
     public function updatingPage(): void
@@ -32,26 +40,51 @@ class AssignmentsIndexTable extends Component
 
     public function createTeacherSubject(): void
     {
-        $data = $this->validateWithFriendlyMessage([
-            'teacher_id' => ['required', 'integer', Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', User::ROLE_TEACHER))],
-            'subject_id' => ['required', 'integer', Rule::exists('subjects', 'id')],
-            'class_id' => ['required', 'integer', Rule::exists('school_classes', 'id')],
-        ]);
+        if ($this->assignment_type === 'grade') {
+            $data = $this->validateWithFriendlyMessage([
+                'teacher_id' => ['required', 'integer', Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', User::ROLE_TEACHER))],
+                'subject_id' => ['required', 'integer', Rule::exists('subjects', 'id')],
+                'grade_level' => ['required', 'integer', 'min:1', 'max:12'],
+            ]);
+            $data['class_id'] = null;
 
-        $exists = TeacherSubject::query()
-            ->where('teacher_id', $data['teacher_id'])
-            ->where('subject_id', $data['subject_id'])
-            ->where('class_id', $data['class_id'])
-            ->exists();
+            $exists = TeacherSubject::query()
+                ->where('teacher_id', $data['teacher_id'])
+                ->where('subject_id', $data['subject_id'])
+                ->where('grade_level', $data['grade_level'])
+                ->whereNull('class_id')
+                ->exists();
 
-        if ($exists) {
-            $this->addError('teacher_id', 'Assignment mapel-guru-kelas sudah ada.');
-            $this->notifyError('Assignment ini sudah ada, tidak perlu ditambahkan lagi.');
-            return;
+            if ($exists) {
+                $this->addError('teacher_id', 'Assignment guru-mapel-tingkat sudah ada.');
+                $this->notifyError('Assignment ini sudah ada.');
+
+                return;
+            }
+        } else {
+            $data = $this->validateWithFriendlyMessage([
+                'teacher_id' => ['required', 'integer', Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', User::ROLE_TEACHER))],
+                'subject_id' => ['required', 'integer', Rule::exists('subjects', 'id')],
+                'class_id' => ['required', 'integer', Rule::exists('school_classes', 'id')],
+            ]);
+            $data['grade_level'] = null;
+
+            $exists = TeacherSubject::query()
+                ->where('teacher_id', $data['teacher_id'])
+                ->where('subject_id', $data['subject_id'])
+                ->where('class_id', $data['class_id'])
+                ->exists();
+
+            if ($exists) {
+                $this->addError('teacher_id', 'Assignment mapel-guru-kelas sudah ada.');
+                $this->notifyError('Assignment ini sudah ada.');
+
+                return;
+            }
         }
 
         TeacherSubject::query()->create($data);
-        $this->reset(['teacher_id', 'subject_id', 'class_id']);
+        $this->reset(['teacher_id', 'subject_id', 'class_id', 'grade_level']);
         session()->flash('status', 'teacher-subject-assigned');
         $this->notifySuccess('Assignment guru mapel berhasil ditambahkan.');
     }
@@ -102,7 +135,7 @@ class AssignmentsIndexTable extends Component
             ->with('schoolYear:id,name')
             ->orderBy('grade_level')
             ->orderBy('name')
-            ->get(['id', 'name', 'school_year_id']));
+            ->get(['id', 'name', 'grade_level', 'school_year_id']));
 
         return view('livewire.admin.assignments-index-table', [
             'teachers' => $teachers,

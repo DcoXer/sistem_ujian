@@ -6,6 +6,7 @@ use App\Exports\StudentImportTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Models\SchoolClass;
 use App\Models\SchoolYear;
+use App\Models\Semester;
 use App\Services\ClassStudentSyncService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,8 +18,7 @@ class AdminClassController extends Controller
 {
     public function __construct(
         protected ClassStudentSyncService $classStudentSyncService
-    ) {
-    }
+    ) {}
 
     public function index(): View
     {
@@ -48,6 +48,41 @@ class AdminClassController extends Controller
         $schoolYear->update(['is_active' => true]);
 
         return back()->with('status', 'school-year-activated');
+    }
+
+    public function storeSemester(Request $request, SchoolYear $schoolYear): RedirectResponse
+    {
+        $data = $request->validate([
+            'semester_number' => ['required', 'integer', 'in:1,2'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+        ]);
+
+        $exists = Semester::query()
+            ->where('school_year_id', $schoolYear->id)
+            ->where('semester_number', $data['semester_number'])
+            ->exists();
+
+        if ($exists) {
+            return back()->withErrors(['semester' => 'Semester ini sudah ada untuk tahun ajaran tersebut.'])->withInput();
+        }
+
+        $name = 'Semester '.$data['semester_number'];
+        Semester::query()->create($data + [
+            'school_year_id' => $schoolYear->id,
+            'name' => $name,
+            'is_active' => false,
+        ]);
+
+        return back()->with('status', 'semester-created');
+    }
+
+    public function activateSemester(Semester $semester): RedirectResponse
+    {
+        Semester::query()->where('is_active', true)->update(['is_active' => false]);
+        $semester->update(['is_active' => true]);
+
+        return back()->with('status', 'semester-activated');
     }
 
     public function store(Request $request): RedirectResponse
@@ -121,7 +156,7 @@ class AdminClassController extends Controller
     public function downloadStudentImportTemplate(Request $request)
     {
         $format = strtolower((string) $request->query('format', 'xlsx'));
-        $export = new StudentImportTemplateExport();
+        $export = new StudentImportTemplateExport;
 
         if ($format === 'csv') {
             return Excel::download($export, 'template-import-siswa.csv', \Maatwebsite\Excel\Excel::CSV);

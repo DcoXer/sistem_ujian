@@ -11,7 +11,20 @@ class TeacherSubject extends Model
         'teacher_id',
         'subject_id',
         'class_id',
+        'grade_level',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'grade_level' => 'integer',
+        ];
+    }
+
+    public function isGradeLevelAssignment(): bool
+    {
+        return $this->class_id === null && $this->grade_level !== null;
+    }
 
     public function teacher(): BelongsTo
     {

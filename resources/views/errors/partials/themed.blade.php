@@ -10,11 +10,11 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-slate-50 font-['Plus_Jakarta_Sans'] text-slate-100 antialiased">
-    {{-- <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div class="absolute -left-20 top-0 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl"></div>
         <div class="absolute right-0 top-24 h-80 w-80 rounded-full bg-indigo-500/20 blur-3xl"></div>
         <div class="absolute bottom-0 left-1/3 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl"></div>
-    </div> --}}
+    </div>
 
     <main class="mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-6 py-10">
         <div class="w-full max-w-3xl rounded-3xl border border-slate-800 bg-slate-600 p-8 text-center shadow-2xl backdrop-blur sm:p-10">

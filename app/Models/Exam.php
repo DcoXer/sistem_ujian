@@ -9,8 +9,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Exam extends Model
 {
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_RUNNING = 'running';
+
     public const STATUS_FINISHED = 'finished';
+
+    public const TYPE_UH = 'UH';
+
+    public const TYPE_UTS = 'UTS';
+
+    public const TYPE_UAS = 'UAS';
+
+    public const TYPE_PAT = 'PAT';
+
+    public const EXAM_TYPES = [self::TYPE_UH, self::TYPE_UTS, self::TYPE_UAS, self::TYPE_PAT];
 
     protected $fillable = [
         'title',
@@ -28,6 +40,8 @@ class Exam extends Model
         'target_grade_level',
         'school_class_id',
         'school_year_id',
+        'semester_id',
+        'exam_type',
     ];
 
     protected function casts(): array
@@ -92,6 +106,11 @@ class Exam extends Model
     public function schoolYear(): BelongsTo
     {
         return $this->belongsTo(SchoolYear::class, 'school_year_id');
+    }
+
+    public function semester(): BelongsTo
+    {
+        return $this->belongsTo(Semester::class);
     }
 
     public function questions(): HasMany
