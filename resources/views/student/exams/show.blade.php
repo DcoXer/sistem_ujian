@@ -1,51 +1,70 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="text-xl font-semibold text-gray-800">Ujian Berlangsung</h2>
+        <h2 class="text-xl font-semibold text-gray-800">Sedang Ujian</h2>
     </x-slot>
 
     <div
-        class="mx-auto max-w-5xl space-y-4 px-4 py-6"
+        class="mx-auto max-w-3xl space-y-4 px-4 py-6"
         data-attempt-id="{{ $attempt->id }}"
         data-answer-url="{{ route('student.exams.answer', $attempt) }}"
         data-timer-url="{{ route('student.exams.timer', $attempt) }}"
         data-timer-poll-interval-seconds="{{ max(5, (int) config('exam.timer_poll_interval_seconds', 30)) }}"
     >
-        <div>
-            <x-back-button :href="route('student.exams.index')" />
-        </div>
-
-        <div class="rounded-xl border border-gray-200 bg-white p-5">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {{-- Header Ujian --}}
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-900">{{ $examContent['title'] }}</h3>
-                    <p class="mt-1 text-sm text-gray-600">Status: <span id="attempt-status" class="font-semibold">{{ $attempt->status }}</span></p>
-                    <p class="mt-1 text-sm text-gray-600"><span id="question-step-label" class="font-semibold">Soal 1</span> dari {{ count($examContent['questions']) }}</p>
+                    <h3 class="text-lg font-bold text-slate-900">{{ $examContent['title'] }}</h3>
+                    <p id="autosave-status" class="mt-1 text-xs text-slate-400">Autosimpan aktif.</p>
                 </div>
-                <div class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm">
-                    Sisa Waktu: <span id="timer-display" class="font-bold text-indigo-700">--:--</span>
+                <div class="flex shrink-0 items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5">
+                    <x-icon name="clock" class="h-5 w-5 text-rose-500" />
+                    <div>
+                        <p class="text-[10px] font-medium uppercase tracking-wide text-rose-600">Sisa Waktu</p>
+                        <p id="timer-display" class="text-xl font-bold text-rose-700">--:--</p>
+                    </div>
                 </div>
             </div>
-            <p id="autosave-status" class="mt-3 text-xs text-gray-500">Autosave aktif.</p>
+
+            {{-- Progress Bar --}}
+            <div class="mt-4">
+                <div class="mb-1.5 flex items-center justify-between text-xs text-slate-500">
+                    <span id="question-step-label" class="font-semibold text-slate-700">Soal 1</span>
+                    <span>dari {{ count($examContent['questions']) }} soal</span>
+                </div>
+                <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div
+                        id="progress-bar"
+                        class="h-2 rounded-full bg-indigo-500 transition-all duration-300"
+                        style="width: {{ count($examContent['questions']) > 0 ? round(1 / count($examContent['questions']) * 100) : 0 }}%"
+                    ></div>
+                </div>
+            </div>
         </div>
 
+        {{-- Kartu Soal --}}
         @foreach ($examContent['questions'] as $question)
             @php
                 $myAnswer = $answersByQuestion->get($question['id']);
             @endphp
             <div
-                class="rounded-xl border border-gray-200 bg-white p-5 {{ $loop->first ? '' : 'hidden' }}"
+                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm {{ $loop->first ? '' : 'hidden' }}"
                 data-question-card
                 data-question-id="{{ $question['id'] }}"
                 data-question-order="{{ $question['order'] }}"
                 data-answer-version="{{ $myAnswer?->lock_version ?? 0 }}"
             >
-                <p class="font-semibold text-gray-900">#{{ $question['order'] }}. {{ $question['question_text'] }}</p>
+                <p class="text-base font-semibold text-slate-900">
+                    <span class="mr-1 text-slate-400">#{{ $question['order'] }}.</span>
+                    {{ $question['question_text'] }}
+                </p>
                 @if (! empty($question['question_image_url']))
-                    <img src="{{ $question['question_image_url'] }}" alt="Gambar soal" class="mt-3 max-h-56 rounded-lg border border-slate-200 object-contain">
+                    <img src="{{ $question['question_image_url'] }}" alt="Gambar soal" class="mt-4 max-h-64 w-full rounded-xl border border-slate-200 object-contain">
                 @endif
-                <div class="mt-3 space-y-2">
-                    @foreach ($question['options'] as $option)
-                        <label class="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm">
+                <div class="mt-4 space-y-2.5">
+                    @foreach ($question['options'] as $index => $option)
+                        @php $optionLabel = chr(65 + $index); @endphp
+                        <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50 has-[:checked]:border-indigo-400 has-[:checked]:bg-indigo-50">
                             <input
                                 type="radio"
                                 name="question_{{ $question['id'] }}"
@@ -53,28 +72,43 @@
                                 data-option-input
                                 data-question-id="{{ $question['id'] }}"
                                 {{ (int) ($myAnswer->exam_option_id ?? 0) === (int) $option['id'] ? 'checked' : '' }}
+                                class="accent-indigo-600"
                             >
-                            <span>{{ $option['option_text'] }}</span>
+                            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-slate-300 text-xs font-bold text-slate-600">{{ $optionLabel }}</span>
+                            <span class="text-slate-800">{{ $option['option_text'] }}</span>
                         </label>
                     @endforeach
                 </div>
             </div>
         @endforeach
 
+        {{-- Navigasi Soal --}}
         <form id="submit-form" method="POST" action="{{ route('student.exams.submit', $attempt) }}">
             @csrf
-            <div class="rounded-xl border border-gray-200 bg-white p-5">
-                <div id="submit-warning" class="hidden rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"></div>
-                <div class="mt-3 flex items-center justify-between gap-2">
-                    <button type="button" id="prev-question" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
-                        Sebelumnya
+            <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div id="submit-warning" class="mb-3 hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"></div>
+                <div class="flex items-center justify-between gap-2">
+                    <button
+                        type="button"
+                        id="prev-question"
+                        class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                        ← Sebelumnya
                     </button>
                     <div class="flex items-center gap-2">
-                        <button type="button" id="next-question" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
-                            Next Soal
+                        <button
+                            type="button"
+                            id="next-question"
+                            class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+                        >
+                            Selanjutnya →
                         </button>
-                        <button id="submit-button" class="hidden rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-                            Submit Jawaban
+                        <button
+                            id="submit-button"
+                            class="hidden inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+                        >
+                            <x-icon name="check" class="h-4 w-4" />
+                            Kumpulkan Jawaban
                         </button>
                     </div>
                 </div>
@@ -93,7 +127,7 @@
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             const autosaveStatus = document.getElementById('autosave-status');
             const timerDisplay = document.getElementById('timer-display');
-            const attemptStatus = document.getElementById('attempt-status');
+            const progressBar = document.getElementById('progress-bar');
             const submitForm = document.getElementById('submit-form');
             const questionCards = Array.from(document.querySelectorAll('[data-question-card]'));
             const prevButton = document.getElementById('prev-question');
@@ -126,13 +160,14 @@
                 timerDisplay.textContent = formatTime(remainingSeconds);
                 if (remainingSeconds <= 0 && !hasExpired) {
                     hasExpired = true;
-                    autosaveStatus.textContent = 'Waktu habis. Jawaban sedang dikunci oleh sistem, tunggu sinkronisasi...';
+                    autosaveStatus.textContent = 'Waktu habis. Jawaban sedang dikunci oleh sistem, harap tunggu...';
+                    autosaveStatus.classList.remove('text-slate-400');
+                    autosaveStatus.classList.add('text-rose-600', 'font-semibold');
                     document.querySelectorAll('[data-option-input]').forEach((input) => {
                         input.disabled = true;
                     });
                     submitButton?.setAttribute('disabled', 'disabled');
-                    submitButton?.classList.add('cursor-not-allowed', 'bg-slate-400');
-                    submitButton?.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+                    submitButton?.classList.add('cursor-not-allowed', 'opacity-50');
                 }
             };
 
@@ -158,10 +193,13 @@
                     questionStepLabel.textContent = `Soal ${currentQuestionIndex + 1}`;
                 }
 
+                if (progressBar) {
+                    const percent = Math.round(((currentQuestionIndex + 1) / totalQuestions) * 100);
+                    progressBar.style.width = `${percent}%`;
+                }
+
                 if (prevButton) {
                     prevButton.disabled = currentQuestionIndex === 0;
-                    prevButton.classList.toggle('opacity-50', currentQuestionIndex === 0);
-                    prevButton.classList.toggle('cursor-not-allowed', currentQuestionIndex === 0);
                 }
 
                 const isLastQuestion = currentQuestionIndex === totalQuestions - 1;
@@ -179,13 +217,12 @@
                     if (!res.ok) return;
                     const json = await res.json();
                     remainingSeconds = Math.max(0, Math.floor(Number(json.remaining_seconds || 0)));
-                    attemptStatus.textContent = json.status || '-';
                     if (json.expired || (json.status && json.status !== 'active')) {
                         hasExpired = true;
                     }
                     updateTimerUi();
                 } catch (_) {
-                    // Ignore transient timer errors.
+                    // Abaikan error timer sementara.
                 }
             };
 
@@ -204,7 +241,7 @@
 
             const saveAnswer = async (questionId, optionId, retryCount = 0) => {
                 if (hasExpired) {
-                    autosaveStatus.textContent = 'Autosave dihentikan karena waktu sudah habis.';
+                    autosaveStatus.textContent = 'Autosimpan dihentikan karena waktu sudah habis.';
                     return;
                 }
 
@@ -229,7 +266,7 @@
                     if (res.ok) {
                         const json = await res.json();
                         answerVersions[questionId] = json.answer_version || answerVersions[questionId] || null;
-                        autosaveStatus.textContent = 'Jawaban tersimpan otomatis.';
+                        autosaveStatus.textContent = '✓ Jawaban tersimpan otomatis.';
                     } else if (res.status === 409) {
                         const conflict = await res.json().catch(() => ({}));
                         if (
@@ -245,10 +282,10 @@
 
                         autosaveStatus.textContent = conflict.message || 'Jawaban bentrok. Muat ulang halaman untuk sinkronisasi.';
                     } else {
-                        autosaveStatus.textContent = 'Gagal autosave. Coba pilih jawaban lagi.';
+                        autosaveStatus.textContent = 'Gagal menyimpan. Coba pilih jawaban lagi.';
                     }
                 } catch (_) {
-                    autosaveStatus.textContent = 'Koneksi gagal saat autosave.';
+                    autosaveStatus.textContent = 'Koneksi gagal saat menyimpan jawaban.';
                 }
             };
 
@@ -285,7 +322,7 @@
                         renderQuestionStep();
                     }
                     if (submitWarning) {
-                        submitWarning.textContent = `Masih ada soal yang belum diisi: nomor ${unanswered.join(', ')}.`;
+                        submitWarning.textContent = `Masih ada soal yang belum dijawab: nomor ${unanswered.join(', ')}. Harap isi semua soal sebelum mengumpulkan.`;
                         submitWarning.classList.remove('hidden');
                     }
                 }
@@ -295,4 +332,3 @@
         });
     </script>
 </x-app-layout>
-

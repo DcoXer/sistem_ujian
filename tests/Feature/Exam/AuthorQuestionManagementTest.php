@@ -185,7 +185,7 @@ class AuthorQuestionManagementTest extends TestCase
         $this->actingAs($author)
             ->get(route('teacher.exams.show', $exam))
             ->assertOk()
-            ->assertSee('Soal ditampilkan read-only');
+            ->assertSee('Soal ditampilkan hanya untuk dibaca');
     }
 
     public function test_author_cannot_view_questions_page_while_exam_running(): void
