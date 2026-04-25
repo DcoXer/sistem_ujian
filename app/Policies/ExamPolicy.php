@@ -3,7 +3,6 @@
 namespace App\Policies;
 
 use App\Models\Exam;
-use App\Models\TeacherSubject;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
@@ -22,27 +21,9 @@ class ExamPolicy
 
         $teacherId = (int) ($exam->teacher_id ?? $exam->author_id ?? 0);
 
-        if (! (
-            $exam->status === Exam::STATUS_DRAFT
+        return $exam->status === Exam::STATUS_DRAFT
             && $exam->isWithinAuthoringWindow()
-            && $teacherId === (int) $user->id
-        )) {
-            return false;
-        }
-
-        if (! $exam->subject_id) {
-            return true;
-        }
-
-        // Check class-specific assignment or grade-level assignment
-        return TeacherSubject::query()
-            ->where('teacher_id', $user->id)
-            ->where('subject_id', $exam->subject_id)
-            ->where(function ($q) use ($exam) {
-                $q->where('class_id', $exam->class_id)
-                    ->orWhere('grade_level', $exam->target_grade_level);
-            })
-            ->exists();
+            && $teacherId === (int) $user->id;
     }
 
     public function publish(User $user, Exam $exam): bool

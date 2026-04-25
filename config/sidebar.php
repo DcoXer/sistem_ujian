@@ -24,7 +24,7 @@ return [
                 'items' => [
                     ['label' => 'Rombel & Siswa', 'route' => 'admin.classes.index', 'active' => ['admin.classes.*'], 'icon' => 'users'],
                     ['label' => 'Mata Pelajaran', 'route' => 'admin.subjects.index', 'active' => ['admin.subjects.*'], 'icon' => 'book'],
-                    ['label' => 'Assignment Guru', 'route' => 'admin.assignments.index', 'active' => ['admin.assignments.*'], 'icon' => 'book'],
+                    ['label' => 'Assignment Guru', 'route' => 'admin.assignments.index', 'active' => ['admin.assignments.*'], 'icon' => 'clipboard'],
                 ],
             ],
             [
@@ -81,7 +81,7 @@ return [
                 'items' => [
                     ['label' => 'Kelola Soal Ujian', 'route' => 'teacher.exams.index', 'active' => ['teacher.exams.*'], 'icon' => 'book'],
                     ['label' => 'Data Siswa Wali', 'route' => 'teacher.homeroom.students.index', 'active' => ['teacher.homeroom.students.*'], 'icon' => 'users'],
-                    ['label' => 'Hasil Wali Kelas', 'route' => 'teacher.homeroom.results.index', 'active' => ['teacher.homeroom.results.*'], 'icon' => 'pencil'],
+                    ['label' => 'Hasil Wali Kelas', 'route' => 'teacher.homeroom.results.index', 'active' => ['teacher.homeroom.results.*'], 'icon' => 'chart-bar'],
                 ],
             ],
             [

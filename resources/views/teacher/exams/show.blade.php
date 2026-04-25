@@ -36,80 +36,78 @@
             </div>
         </div>
 
-        <div class="grid gap-6 lg:grid-cols-2">
-            {{-- Panel Tambah Soal --}}
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div class="mb-4 flex items-center justify-between">
-                    <h4 class="font-semibold text-slate-900">Tambah Soal Baru</h4>
+        {{-- Daftar Soal --}}
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            {{-- Section header --}}
+            <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                <div class="flex items-center gap-3">
+                    <h4 class="font-semibold text-slate-900">Daftar Soal</h4>
                     <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">{{ $questionsCount }} soal</span>
                 </div>
-
-                @if (! $canManageQuestions)
-                    <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                        <x-icon name="lock" class="h-4 w-4 shrink-0" />
-                        Tambah/edit soal sudah ditutup.
-                    </div>
-                @else
-                    <button id="open-question-modal" type="button" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">
-                        <x-icon name="pencil" class="h-4 w-4" />
+                @if ($canManageQuestions)
+                    <button id="open-question-modal" type="button" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                        <x-icon name="plus" class="h-4 w-4" />
                         Tambah Soal
                     </button>
+                @else
+                    <div class="flex items-center gap-1.5 text-xs text-slate-400">
+                        <x-icon name="lock" class="h-3.5 w-3.5" />
+                        Soal terkunci
+                    </div>
                 @endif
             </div>
 
-            {{-- Daftar Soal --}}
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h4 class="mb-4 font-semibold text-slate-900">Daftar Soal yang Sudah Dibuat</h4>
-                <div class="space-y-3">
-                    @forelse ($exam->questions as $question)
-                        @php
-                            $optionTexts = $question->options->pluck('option_text')->values();
-                            $correctIndex = $question->options->search(fn ($option) => (bool) $option->is_correct);
-                            $correctIndex = $correctIndex === false ? 0 : $correctIndex;
-                            $correctLabel = chr(65 + $correctIndex);
-                        @endphp
-                        <div class="rounded-xl border border-slate-200 p-4">
-                            <div class="flex items-start justify-between gap-2">
-                                <p class="text-sm font-semibold text-slate-900">#{{ $question->order }}. {{ $question->question_text }}</p>
-                                @if ($canManageQuestions)
-                                    <div class="flex shrink-0 items-center gap-1.5">
-                                        <button
-                                            type="button"
-                                            class="rounded-lg border border-indigo-200 px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
-                                            data-edit-question-open="{{ $question->id }}"
-                                        >
-                                            Edit
-                                        </button>
-                                        <form method="POST" action="{{ route('teacher.exams.questions.destroy', [$exam, $question]) }}" data-confirm data-confirm-title="Hapus Soal" data-confirm-message="Soal ini akan dihapus secara permanen. Lanjutkan?">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">
-                                                Hapus
-                                            </button>
-                                        </form>
-                                    </div>
-                                @endif
+            {{-- Question list --}}
+            <div class="divide-y divide-slate-100">
+                @forelse ($questions as $question)
+                    @php
+                        $optionTexts = $question->options->pluck('option_text')->values();
+                        $correctIndex = $question->options->search(fn ($option) => (bool) $option->is_correct);
+                        $correctIndex = $correctIndex === false ? 0 : $correctIndex;
+                        $correctLabel = chr(65 + $correctIndex);
+                    @endphp
+                    <div class="p-5">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex min-w-0 items-start gap-3">
+                                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">{{ $question->order }}</span>
+                                <p class="pt-0.5 text-sm font-medium text-slate-900">{{ $question->question_text }}</p>
                             </div>
-
-                            @if ($question->question_image_path)
-                                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($question->question_image_path) }}" alt="Gambar soal" class="mt-2 max-h-40 rounded-lg border border-slate-200 object-contain">
+                            @if ($canManageQuestions)
+                                <div class="flex shrink-0 items-center gap-1.5">
+                                    <button
+                                        type="button"
+                                        class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                                        data-edit-question-open="{{ $question->id }}"
+                                    >Edit</button>
+                                    <form method="POST" action="{{ route('teacher.exams.questions.destroy', [$exam, $question]) }}" data-confirm data-confirm-title="Hapus Soal" data-confirm-message="Soal ini akan dihapus secara permanen. Lanjutkan?">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Hapus</button>
+                                    </form>
+                                </div>
                             @endif
-
-                            <ul class="mt-2 space-y-1">
-                                @foreach ($question->options as $optIndex => $option)
-                                    <li class="flex items-center gap-2 text-sm {{ $option->is_correct ? 'font-semibold text-emerald-700' : 'text-slate-600' }}">
-                                        <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold {{ $option->is_correct ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-400' }}">{{ chr(65 + $optIndex) }}</span>
-                                        {{ $option->option_text }}
-                                        @if ($option->is_correct)
-                                            <span class="text-[10px] font-bold text-emerald-600">(Benar)</span>
-                                        @endif
-                                    </li>
-                                @endforeach
-                            </ul>
                         </div>
 
-                        @if ($canManageQuestions)
-                            <div id="edit-question-modal-{{ $question->id }}" class="fixed inset-0 z-[106] hidden">
+                        @if ($question->question_image_path)
+                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($question->question_image_path) }}" alt="Gambar soal" class="ml-10 mt-3 max-h-48 rounded-xl border border-slate-200 object-contain">
+                        @endif
+
+                        <div class="ml-10 mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                            @foreach ($question->options as $optIndex => $option)
+                                <div class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {{ $option->is_correct ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-50 text-slate-600' }}">
+                                    <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold {{ $option->is_correct ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500' }}">{{ chr(65 + $optIndex) }}</span>
+                                    <span class="{{ $option->is_correct ? 'font-semibold' : '' }}">{{ $option->option_text }}</span>
+                                    @if ($option->is_correct)
+                                        <span class="ml-auto shrink-0 text-[10px] font-bold text-emerald-600">(Benar)</span>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                        <p class="ml-10 mt-2 text-xs text-slate-400">Bobot: <span class="font-semibold text-slate-600">{{ $question->points }} poin</span> &middot; Jawaban benar: <span class="font-semibold text-emerald-600">{{ $correctLabel }}</span></p>
+                    </div>
+
+                    @if ($canManageQuestions)
+                        <div id="edit-question-modal-{{ $question->id }}" class="fixed inset-0 z-[106] hidden overflow-y-auto">
                                 <div class="edit-question-modal-backdrop absolute inset-0 bg-slate-900/60" data-edit-question-close="{{ $question->id }}"></div>
                                 <div class="relative z-10 flex min-h-full items-center justify-center p-4">
                                     <div class="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
@@ -178,20 +176,27 @@
                                 </div>
                             </div>
                         @endif
-                    @empty
-                        <div class="rounded-xl border border-dashed border-slate-200 py-8 text-center">
-                            <x-icon name="document" class="mx-auto h-8 w-8 text-slate-300" />
-                            <p class="mt-2 text-sm text-slate-500">Belum ada soal. Klik "Tambah Soal" untuk mulai.</p>
-                        </div>
-                    @endforelse
-                </div>
+                @empty
+                    <div class="px-5 py-16 text-center">
+                        <x-icon name="document" class="mx-auto h-10 w-10 text-slate-200" />
+                        <p class="mt-3 text-sm font-medium text-slate-500">Belum ada soal.</p>
+                        @if ($canManageQuestions)
+                            <p class="mt-1 text-xs text-slate-400">Klik "Tambah Soal" untuk mulai membuat soal.</p>
+                        @endif
+                    </div>
+                @endforelse
             </div>
+            @if ($questions->hasPages())
+                <div class="border-t border-slate-100 px-5 py-3">
+                    {{ $questions->links() }}
+                </div>
+            @endif
         </div>
     </div>
 
     @if ($canManageQuestions)
         {{-- Modal Tambah Soal --}}
-        <div id="question-modal" class="fixed inset-0 z-[105] hidden">
+        <div id="question-modal" class="fixed inset-0 z-[105] hidden overflow-y-auto">
             <div class="question-modal-backdrop absolute inset-0 bg-slate-900/60"></div>
             <div class="relative z-10 flex min-h-full items-center justify-center p-4">
                 <div class="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
@@ -234,7 +239,7 @@
                             </div>
                             <div>
                                 <label class="mb-1 block text-sm font-medium text-slate-700">Nomor Soal</label>
-                                <input type="number" min="1" name="order" value="{{ old('order', $exam->questions->count() + 1) }}" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400" required>
+                                <input type="number" min="1" name="order" value="{{ old('order', $questionsCount + 1) }}" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400" required>
                             </div>
                         </div>
 

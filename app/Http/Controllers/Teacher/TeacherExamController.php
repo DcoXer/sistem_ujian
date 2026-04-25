@@ -46,13 +46,15 @@ class TeacherExamController extends Controller
             $questionColumns[] = 'question_image_path';
         }
 
-        $exam->load([
-            'questions' => fn ($query) => $query->select($questionColumns),
-            'questions.options' => fn ($query) => $query->select(['id', 'exam_question_id', 'option_text', 'is_correct']),
-        ]);
-        $questionsCount = $exam->questions->count();
+        $questionsCount = $exam->questions()->count();
 
-        return view('teacher.exams.show', compact('exam', 'questionsCount', 'canManageQuestions', 'canViewFinishedQuestions'));
+        $questions = $exam->questions()
+            ->select($questionColumns)
+            ->with(['options' => fn ($q) => $q->select(['id', 'exam_question_id', 'option_text', 'is_correct'])])
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('teacher.exams.show', compact('exam', 'questions', 'questionsCount', 'canManageQuestions', 'canViewFinishedQuestions'));
     }
 
     public function storeQuestion(Request $request, Exam $exam): RedirectResponse

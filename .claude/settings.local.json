@@ -3,7 +3,10 @@
     "allow": [
       "Bash(grep:*)",
       "Bash(php artisan:*)",
-      "Bash(vendor/bin/pint --dirty)"
+      "Bash(vendor/bin/pint --dirty)",
+      "mcp__laravel-boost__browser-logs",
+      "mcp__laravel-boost__tinker",
+      "Bash(vendor/bin/pint:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
